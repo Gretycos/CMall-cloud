@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.tsong.cmall.dao.SeckillSuccessMapper">
+  <resultMap id="BaseResultMap" type="com.tsong.cmall.entity.SeckillSuccess">
+    <id column="sec_id" jdbcType="BIGINT" property="secId" />
+    <result column="seckill_id" jdbcType="BIGINT" property="seckillId" />
+    <result column="user_id" jdbcType="BIGINT" property="userId" />
+    <result column="state" jdbcType="TINYINT" property="state" />
+    <result column="create_time" jdbcType="TIMESTAMP" property="createTime" />
+  </resultMap>
+  <sql id="Base_Column_List">
+    sec_id, seckill_id, user_id, state, create_time
+  </sql>
+
+  <select id="getSeckillSuccessByUserIdAndSeckillId"
+          resultMap="BaseResultMap">
+    select
+    <include refid="Base_Column_List"/>
+    from tb_seckill_success
+    where seckill_id = #{seckillId}
+    and user_id = #{userId}
+  </select>
+
+
+  <delete id="deleteByPrimaryKey" parameterType="java.lang.Long">
+    delete from tb_seckill_success
+    where sec_id = #{secId,jdbcType=BIGINT}
+  </delete>
+
+</mapper>

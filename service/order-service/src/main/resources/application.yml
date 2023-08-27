@@ -1,0 +1,43 @@
+server:
+  port: 8084
+
+spring:
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://127.0.0.1:3306/cloud_order?useUnicode=true&serverTimezone=Asia/Shanghai&characterEncoding=utf8&autoReconnect=true&useSSL=false&allowPublicKeyRetrieval=true&allowMultiQueries=true
+    username: root
+    password: 123456
+    hikari:
+      maximum-pool-size: 1500
+      connection-timeout: 30000
+      max-lifetime: 60000
+      idle-timeout: 600000
+
+  rabbitmq:
+    host: 127.0.0.1
+    port: 5672
+    username: root
+    password: 123456
+    virtual-host: /
+    # 生产者确认功能
+    publisher-confirm-type: correlated # 异步回调
+    publisher-returns: true
+    template:
+      mandatory: true
+    # 消费者
+    listener:
+      simple:
+        prefetch: 1
+        acknowledge-mode: auto
+        retry:
+          enabled: true
+          initial-interval: 1000
+          multiplier: 3 # next = last * interval
+          max-attempts: 4
+          stateless: true # 关闭事务: true, 开启事务: false
+
+mybatis:
+  # mapper映射文件位置
+  mapper-locations: classpath:mapper/*Mapper.xml
+  configuration:
+    map-underscore-to-camel-case: true

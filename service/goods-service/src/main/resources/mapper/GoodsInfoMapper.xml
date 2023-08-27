@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.tsong.cmall.goods.mapper.GoodsInfoMapper">
+  <resultMap id="BaseResultMap" type="com.tsong.cmall.entity.GoodsInfo">
+    <id column="goods_id" jdbcType="BIGINT" property="goodsId" />
+    <result column="goods_name" jdbcType="VARCHAR" property="goodsName" />
+    <result column="goods_intro" jdbcType="VARCHAR" property="goodsIntro" />
+    <result column="goods_category_id" jdbcType="BIGINT" property="goodsCategoryId" />
+    <result column="goods_cover_img" jdbcType="VARCHAR" property="goodsCoverImg" />
+    <result column="goods_carousel" jdbcType="VARCHAR" property="goodsCarousel" />
+    <result column="original_price" jdbcType="DECIMAL" property="originalPrice" />
+    <result column="selling_price" jdbcType="DECIMAL" property="sellingPrice" />
+    <result column="stock_num" jdbcType="INTEGER" property="stockNum" />
+    <result column="tag" jdbcType="VARCHAR" property="tag" />
+    <result column="goods_sale_status" jdbcType="TINYINT" property="goodsSaleStatus" />
+    <result column="create_user" jdbcType="BIGINT" property="createUser" />
+    <result column="create_time" jdbcType="TIMESTAMP" property="createTime" />
+    <result column="update_user" jdbcType="BIGINT" property="updateUser" />
+    <result column="update_time" jdbcType="TIMESTAMP" property="updateTime" />
+  </resultMap>
+  <resultMap extends="BaseResultMap" id="ResultMapWithBLOBs" type="com.tsong.cmall.entity.GoodsInfo">
+    <result column="goods_detail_content" jdbcType="LONGVARCHAR" property="goodsDetailContent" />
+  </resultMap>
+  <sql id="Base_Column_List">
+    goods_id, goods_name, goods_intro, goods_category_id, goods_cover_img, goods_carousel, 
+    original_price, selling_price, stock_num, tag, goods_sale_status, create_user, create_time,
+    update_user, update_time
+  </sql>
+  <sql id="Blob_Column_List">
+    goods_detail_content
+  </sql>
+
+  <select id="selectByPrimaryKeys" resultMap="BaseResultMap">
+    select
+    <include refid="Base_Column_List"/>
+    from tb_goods_info
+    where goods_id in
+    <foreach item="id" collection="list" open="(" separator="," close=")">
+      #{id}
+    </foreach>
+    <!-- 自定义排序，按list所给顺序排序 -->
+    order by field(goods_id,
+    <foreach item="id" collection="list" separator=",">
+      #{id}
+    </foreach>
+    );
+  </select>
+
+  <select id="selectGoodsListBySearch" parameterType="Map" resultMap="BaseResultMap">
+    select
+    <include refid="Base_Column_List"/>
+    from tb_goods_info
+    <where>
+      <if test="keyword!=null and keyword!=''">
+        and (goods_name like CONCAT('%',#{keyword},'%') or goods_intro like CONCAT('%',#{keyword},'%'))
+      </if>
+      <if test="goodsCategoryId!=null and goodsCategoryId!=''">
+        and goods_category_id = #{goodsCategoryId}
+      </if>
+      <if test="goodsSaleStatus!=null">
+        and goods_sale_status = #{goodsSaleStatus}
+      </if>
+    </where>
+    <if test="orderBy!=null and orderBy!=''">
+      <choose>
+        <when test="orderBy == 'new'">
+          <!-- 按照发布时间倒序排列 -->
+          order by goods_id desc
+        </when>
+        <when test="orderBy == 'price'">
+          <!-- 按照售价从小到大排列 -->
+          order by selling_price asc
+        </when>
+        <otherwise>
+          <!-- 默认按照库存数量从大到小排列 -->
+          order by stock_num desc
+        </otherwise>
+      </choose>
+    </if>
+    <if test="start!=null and limit!=null">
+      limit #{start},#{limit}
+    </if>
+  </select>
+
+  <update id="recoverStockNum">
+    <foreach collection="stockNumDTOS" item="stockNumDTO">
+      update tb_goods_info set stock_num = stock_num+#{stockNumDTO.goodsCount}
+      where goods_id = #{stockNumDTO.goodsId} and stock_num>=#{stockNumDTO.goodsCount} and goods_sale_status = 1;
+    </foreach>
+  </update>
+
+  <select id="selectByPrimaryKey" parameterType="java.lang.Long" resultMap="ResultMapWithBLOBs">
+    select 
+    <include refid="Base_Column_List" />
+    ,
+    <include refid="Blob_Column_List" />
+    from tb_goods_info
+    where goods_id = #{goodsId,jdbcType=BIGINT}
+  </select>
+</mapper>

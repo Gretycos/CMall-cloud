@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.tsong.cmall.dao.SeckillMapper">
+  <resultMap id="BaseResultMap" type="com.tsong.cmall.entity.Seckill">
+    <id column="seckill_id" jdbcType="BIGINT" property="seckillId" />
+    <result column="goods_id" jdbcType="BIGINT" property="goodsId" />
+    <result column="seckill_price" jdbcType="DECIMAL" property="seckillPrice" />
+    <result column="seckill_num" jdbcType="INTEGER" property="seckillNum" />
+    <result column="seckill_status" jdbcType="BIT" property="seckillStatus" />
+    <result column="seckill_begin" jdbcType="TIMESTAMP" property="seckillBegin" />
+    <result column="seckill_end" jdbcType="TIMESTAMP" property="seckillEnd" />
+    <result column="seckill_rank" jdbcType="INTEGER" property="seckillRank" />
+    <result column="create_time" jdbcType="TIMESTAMP" property="createTime" />
+    <result column="update_time" jdbcType="TIMESTAMP" property="updateTime" />
+    <result column="is_deleted" jdbcType="BIT" property="isDeleted" />
+  </resultMap>
+  <sql id="Base_Column_List">
+    seckill_id, goods_id, seckill_price, seckill_num, seckill_status, seckill_begin, 
+    seckill_end, seckill_rank, create_time, update_time, is_deleted
+  </sql>
+
+  <select id="getHomePageSeckillList" resultMap="BaseResultMap">
+    select
+    <include refid="Base_Column_List"/>
+    from tb_seckill s
+    where is_deleted = 0
+    and seckill_status = 1
+    and seckill_num > 0
+    order by seckill_rank desc
+    limit 10
+  </select>
+
+  <select id="killByProcedure" statementType="CALLABLE">
+    call execute_seckill(
+            #{seckillId, jdbcType = BIGINT, mode = IN },
+            #{userId, jdbcType = BIGINT, mode = IN },
+            #{killTime, jdbcType = TIMESTAMP, mode = IN },
+            #{result, jdbcType = INTEGER, mode = OUT }
+      )
+  </select>
+
+  <insert id="addStock">
+    update tb_seckill
+    set seckill_num = seckill_num + 1
+    where seckill_id = #{seckillId}
+  </insert>
+  
+  <update id="putOffBatch">
+    update tb_seckill
+    set seckill_status = 0
+    where seckill_id in
+    <foreach collection="seckillIds" item="item" index="index"
+             open="(" separator="," close=")">
+      #{item}
+    </foreach>
+  </update>
+
+  <select id="selectByPrimaryKey" parameterType="java.lang.Long" resultMap="BaseResultMap">
+    select 
+    <include refid="Base_Column_List" />
+    from tb_seckill
+    where seckill_id = #{seckillId,jdbcType=BIGINT}
+  </select>
+
+</mapper>

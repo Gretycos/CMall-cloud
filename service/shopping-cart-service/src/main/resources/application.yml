@@ -1,0 +1,20 @@
+server:
+  port: 8085
+
+spring:
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://127.0.0.1:3306/cloud_shopping_cart?useUnicode=true&serverTimezone=Asia/Shanghai&characterEncoding=utf8&autoReconnect=true&useSSL=false&allowPublicKeyRetrieval=true&allowMultiQueries=true
+    username: root
+    password: 123456
+    hikari:
+      maximum-pool-size: 1500
+      connection-timeout: 30000
+      max-lifetime: 60000
+      idle-timeout: 600000
+
+mybatis:
+  # mapper映射文件位置
+  mapper-locations: classpath:mapper/*Mapper.xml
+  configuration:
+    map-underscore-to-camel-case: true

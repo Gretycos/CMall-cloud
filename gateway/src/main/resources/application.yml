@@ -11,18 +11,29 @@ spring:
     gateway:
       routes:
         - id: user-service # 路由标识，唯一
-          uri: lb://userservice # 路由目标地址
+          uri: lb://user-service # 路由目标地址
           predicates: # 路由断言，判断请求符合的规则
-            - Path=/user/**
-#          filters:
-#            - AddRequestHeader=Truth, I am freaking awesome!
+            - Path=/api/user/**
         - id: order-service
-          uri: lb://orderservice
+          uri: lb://order-service
           predicates:
-            - Path=/order/**
-#      default-filters:
-#        - AddRequestHeader=Truth, I am freaking awesome!
-#        - AddRequestHeader=origin, gateway
+            - Path=/api/order/**
+        - id: coupon-service
+          uri: lb://coupon-service
+          predicates:
+            - Path=/api/coupon/**
+        - id: goods-service
+          uri: lb://goods-service
+          predicates:
+            - Path=/api/goods/**
+        - id: seckill-service
+          uri: lb://seckill-service
+          predicates:
+            - Path=/api/seckill/**
+        - id: shopping-cart-service
+          uri: lb://shopping-cart-service
+          predicates:
+            - Path=/api/shopping-cart/**
       globalcors:
         add-to-simple-url-handler-mapping: true
         cors-configurations:

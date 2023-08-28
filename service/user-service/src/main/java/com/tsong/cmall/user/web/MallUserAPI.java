@@ -2,6 +2,7 @@ package com.tsong.cmall.user.web;
 
 import com.tsong.cmall.common.constants.Constants;
 import com.tsong.cmall.common.enums.ServiceResultEnum;
+import com.tsong.cmall.common.util.BeanUtil;
 import com.tsong.cmall.common.util.NumberUtil;
 import com.tsong.cmall.common.util.Result;
 import com.tsong.cmall.common.util.ResultGenerator;
@@ -10,6 +11,7 @@ import com.tsong.cmall.user.web.params.MallUserLoginParam;
 import com.tsong.cmall.user.web.params.MallUserPasswordParam;
 import com.tsong.cmall.user.web.params.MallUserRegisterParam;
 import com.tsong.cmall.user.web.params.MallUserUpdateParam;
+import com.tsong.cmall.user.web.vo.MallUserVO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -56,7 +58,7 @@ public class MallUserAPI {
 
     @PostMapping("/logout")
     @Operation(summary = "登出接口", description = "清除token")
-    public Result<String> logout(Long userId) {
+    public Result<String> logout(@RequestParam Long userId) {
         Boolean logoutResult = userService.logout(userId);
         logger.info("logout, loginMallUser={}", userId);
 
@@ -90,7 +92,7 @@ public class MallUserAPI {
     @PutMapping("/info")
     @Operation(summary = "修改用户信息", description = "")
     public Result updateInfo(@RequestBody @Parameter(name = "用户信息") @Valid MallUserUpdateParam mallUserUpdateParam,
-                             Long userId) {
+                             @RequestParam Long userId) {
         Boolean flag = userService.updateUserInfo(mallUserUpdateParam, userId);
         if (flag) {
             //返回成功
@@ -104,7 +106,7 @@ public class MallUserAPI {
     @PutMapping("/password")
     @Operation(summary = "修改用户密码", description = "")
     public Result updatePassword(@RequestBody @Parameter(name = "用户密码") @Valid MallUserPasswordParam mallUserPasswordParam,
-                                 Long userId) {
+                                 @RequestParam Long userId) {
         Boolean flag = userService.updateUserPassword(mallUserPasswordParam, userId);
         if (flag) {
             //返回成功
@@ -115,13 +117,9 @@ public class MallUserAPI {
         }
     }
 
-    // 网关做就行
-//    @GetMapping("/info")
-//    @Operation(summary = "获取用户信息", description = "")
-//    public Result getUserDetail(@TokenToMallUser MallUser loginMallUser) {
-//        //已登录则直接返回
-//        MallUserVO mallUserVO = new MallUserVO();
-//        BeanUtil.copyProperties(loginMallUser, mallUserVO);
-//        return ResultGenerator.genSuccessResult(mallUserVO);
-//    }
+    @GetMapping("/info")
+    @Operation(summary = "获取用户信息", description = "")
+    public Result getUserDetail(@RequestParam Long userId) {
+        return ResultGenerator.genSuccessResult(userService.getUserInfo(userId));
+    }
 }

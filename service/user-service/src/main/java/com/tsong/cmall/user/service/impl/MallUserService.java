@@ -12,6 +12,7 @@ import com.tsong.cmall.user.mapper.UserTokenMapper;
 import com.tsong.cmall.user.redis.RedisCache;
 import com.tsong.cmall.user.web.params.MallUserPasswordParam;
 import com.tsong.cmall.user.web.params.MallUserUpdateParam;
+import com.tsong.cmall.user.web.vo.MallUserVO;
 import com.tsong.feign.clients.coupon.CouponClient;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -89,7 +90,7 @@ public class MallUserService implements IMallUserService {
                         .build();
                 //新增一条token数据
                 if (userTokenMapper.insertSelective(userToken) > 0) {
-                    redisCache.setCacheObject(Constants.MALL_USER_TOKEN_KEY + token, user,
+                    redisCache.setCacheObject(Constants.MALL_USER_TOKEN_KEY + token, user.getUserId(),
                             Constants.TOKEN_EXPIRED_TIME, TimeUnit.MILLISECONDS);
                     //新增成功后返回
                     return token;
@@ -112,6 +113,14 @@ public class MallUserService implements IMallUserService {
             }
         }
         return ServiceResultEnum.LOGIN_ERROR.getResult();
+    }
+
+    @Override
+    public MallUserVO getUserInfo(Long userId) {
+        MallUserVO mallUserVO = new MallUserVO();
+        MallUser mallUser = mallUserMapper.selectByPrimaryKey(userId);
+        BeanUtil.copyProperties(mallUser, mallUserVO);
+        return mallUserVO;
     }
 
     /**

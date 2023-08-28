@@ -74,7 +74,7 @@ public class GoodsInfoAPI {
     @GetMapping("/detail/{goodsId}")
     @Operation(summary = "商品详情接口", description = "传参为商品id")
     public Result goodsDetail(@Parameter(name = "商品id") @PathVariable("goodsId") Long goodsId,
-                                             Long userId) {
+                              @RequestParam Long userId) {
         logger.info("goodsDetail, goodsId={},userId={}", goodsId, userId);
         if (goodsId < 1) {
             return ResultGenerator.genFailResult("参数异常");

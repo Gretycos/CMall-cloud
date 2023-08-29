@@ -20,6 +20,7 @@ import org.springframework.stereotype.Service;
 import java.util.Date;
 import java.util.concurrent.TimeUnit;
 
+import static com.tsong.cmall.common.constants.Constants.*;
 import static com.tsong.cmall.common.enums.ServiceResultEnum.RPC_ERROR;
 
 /**
@@ -40,7 +41,6 @@ public class MallUserService implements IMallUserService {
     @Autowired
     private RedisCache redisCache;
 
-//    @Transactional(rollbackFor = Exception.class)
     @Override
     public String register(String loginName, String password) {
         if (mallUserMapper.selectByLoginName(loginName) != null) {
@@ -77,7 +77,7 @@ public class MallUserService implements IMallUserService {
             // 当前时间
             Date now = new Date();
             // 过期时间
-            Date expireTime = new Date(now.getTime() + Constants.TOKEN_EXPIRED_TIME); // 过期时间 48 小时
+            Date expireTime = new Date(now.getTime() + TOKEN_EXPIRED_TIME); // 过期时间 48 小时
 
             UserToken userToken = userTokenMapper.selectByPrimaryKey(user.getUserId());
             if (userToken == null) {
@@ -90,21 +90,21 @@ public class MallUserService implements IMallUserService {
                         .build();
                 //新增一条token数据
                 if (userTokenMapper.insertSelective(userToken) > 0) {
-                    redisCache.setCacheObject(Constants.MALL_USER_TOKEN_KEY + token, user.getUserId(),
-                            Constants.TOKEN_EXPIRED_TIME, TimeUnit.MILLISECONDS);
+                    redisCache.setCacheObject(MALL_USER_TOKEN_KEY + token, user.getUserId(),
+                            TOKEN_EXPIRED_TIME, TimeUnit.MILLISECONDS);
                     //新增成功后返回
                     return token;
                 }
             } else {
                 // 单点登录
                 // 删除
-                redisCache.deleteObject(Constants.MALL_USER_TOKEN_KEY + userToken.getToken());
+                redisCache.deleteObject(MALL_USER_TOKEN_KEY + userToken.getToken());
                 // 用户登录过，修改token
                 userToken.setToken(token);
                 userToken.setUpdateTime(now);
                 userToken.setExpireTime(expireTime);
-                redisCache.setCacheObject(Constants.MALL_USER_TOKEN_KEY + token, user,
-                        Constants.TOKEN_EXPIRED_TIME, TimeUnit.MILLISECONDS);
+                redisCache.setCacheObject(MALL_USER_TOKEN_KEY + token, user,
+                        TOKEN_EXPIRED_TIME, TimeUnit.MILLISECONDS);
                 //更新
                 if (userTokenMapper.updateByPrimaryKeySelective(userToken) > 0) {
                     //修改成功后返回
@@ -117,20 +117,17 @@ public class MallUserService implements IMallUserService {
 
     @Override
     public MallUserVO getUserInfo(Long userId) {
-        MallUserVO mallUserVO = new MallUserVO();
-        MallUser mallUser = mallUserMapper.selectByPrimaryKey(userId);
-        BeanUtil.copyProperties(mallUser, mallUserVO);
-        return mallUserVO;
-    }
+        MallUserVO mallUserVO = redisCache.getCacheObject(MALL_USER_INFO_KEY + userId);
+        if (mallUserVO == null) {
+            mallUserVO = new MallUserVO();
+            MallUser mallUser = mallUserMapper.selectByPrimaryKey(userId);
+            BeanUtil.copyProperties(mallUser, mallUserVO);
 
-    /**
-     * @Description 获取token值
-     * @Param [timeStr, userId]
-     * @Return java.lang.String
-     */
-    private String genNewToken(String timeStr, Long userId) {
-        String src = timeStr + userId + NumberUtil.genRandomNum(4);
-        return TokenUtil.genToken(src);
+            UserToken userToken = userTokenMapper.selectByPrimaryKey(mallUser.getUserId());
+            redisCache.setCacheObject(MALL_USER_INFO_KEY + userId, mallUserVO,
+                    userToken.getExpireTime().getTime() - System.currentTimeMillis(), TimeUnit.MILLISECONDS);
+        }
+        return mallUserVO;
     }
 
     @Override
@@ -141,16 +138,15 @@ public class MallUserService implements IMallUserService {
         }
         user.setNickName(mallUserUpdateParam.getNickName());
         user.setIntroduceSign(mallUserUpdateParam.getIntroduceSign());
-        if (mallUserMapper.updateByPrimaryKeySelective(user) > 0){
-            String token = userTokenMapper.selectByPrimaryKey(userId).getToken();
-            redisCache.deleteObject(Constants.MALL_USER_TOKEN_KEY + token);
-            return true;
+        if (mallUserMapper.updateByPrimaryKeySelective(user) <= 0){
+            return false;
         }
-        return false;
+        // 清除用户信息缓存
+        redisCache.deleteObject(MALL_USER_INFO_KEY + userId);
+        return true;
     }
 
     @Override
-//    @Transactional
     public Boolean updateUserPassword(MallUserPasswordParam mallUserPasswordParam, Long loginUserId) {
         MallUser user = mallUserMapper.selectByPrimaryKey(loginUserId);
         if (user == null){
@@ -175,7 +171,22 @@ public class MallUserService implements IMallUserService {
     @Override
     public Boolean logout(Long userId) {
         String token = userTokenMapper.selectByPrimaryKey(userId).getToken();
-        redisCache.deleteObject(Constants.MALL_USER_TOKEN_KEY + token);
-        return userTokenMapper.deleteByPrimaryKey(userId) > 0;
+        if (userTokenMapper.deleteByPrimaryKey(userId) <= 0){
+            return false;
+        }
+        // 清除用户信息和登录信息
+        redisCache.deleteObject(MALL_USER_TOKEN_KEY + token);
+        redisCache.deleteObject(MALL_USER_INFO_KEY + userId);
+        return true;
+    }
+
+    /**
+     * @Description 获取token值
+     * @Param [timeStr, userId]
+     * @Return java.lang.String
+     */
+    private String genNewToken(String timeStr, Long userId) {
+        String src = timeStr + userId + NumberUtil.genRandomNum(4);
+        return TokenUtil.genToken(src);
     }
 }

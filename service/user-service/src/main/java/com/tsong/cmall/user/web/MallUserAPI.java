@@ -43,7 +43,7 @@ public class MallUserAPI {
         }
         String loginResult = userService.login(mallUserLoginParam.getLoginName(), mallUserLoginParam.getPasswordMd5());
 
-        logger.info("login, loginName={},loginResult={}", mallUserLoginParam.getLoginName(), loginResult);
+        logger.debug("login, loginName={},loginResult={}", mallUserLoginParam.getLoginName(), loginResult);
 
         //登录成功
         if (StringUtils.hasText(loginResult) && loginResult.length() == Constants.TOKEN_LENGTH) {
@@ -60,7 +60,7 @@ public class MallUserAPI {
     @Operation(summary = "登出接口", description = "清除token")
     public Result<String> logout(@RequestParam Long userId) {
         Boolean logoutResult = userService.logout(userId);
-        logger.info("logout, loginMallUser={}", userId);
+        logger.debug("logout, loginMallUser={}", userId);
 
         //登出成功
         if (logoutResult) {

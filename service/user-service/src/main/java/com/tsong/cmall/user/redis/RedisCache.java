@@ -31,6 +31,16 @@ public class RedisCache {
         redisTemplate.opsForValue().set(key, value, timeout, timeUnit);
     }
 
+    /**
+     * 获得缓存的基本对象
+     *
+     * @param key redis键
+     * @return redis值
+     */
+    public <T> T getCacheObject(final String key) {
+        ValueOperations<String, T> operation = redisTemplate.opsForValue();
+        return operation.get(key);
+    }
 
     /**
      * 删除单个对象

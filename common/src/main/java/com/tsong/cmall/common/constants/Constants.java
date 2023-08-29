@@ -58,6 +58,11 @@ public class Constants {
     public static final String MALL_USER_TOKEN_KEY = REDIS_KEY_PREFIX + "mall_user_token:";
 
     /**
+     * 用户info缓存
+     */
+    public static final String MALL_USER_INFO_KEY = REDIS_KEY_PREFIX + "mall_user_info:";
+
+    /**
      * 用户请求token缓存
      */
     public static final String REQUEST_KEY = REDIS_KEY_PREFIX + "request:";

@@ -9,6 +9,7 @@ import com.tsong.cmall.user.service.IUserAddressService;
 import com.tsong.cmall.user.web.vo.UserAddressVO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Date;
 import java.util.List;
@@ -31,6 +32,7 @@ public class UserAddressService implements IUserAddressService {
     }
 
     @Override
+    @Transactional
     public Boolean saveUserAddress(UserAddress userAddress) {
         Date now = new Date();
         if (userAddress.getDefaultFlag().intValue() == 1) {
@@ -49,6 +51,7 @@ public class UserAddressService implements IUserAddressService {
     }
 
     @Override
+    @Transactional
     public Boolean updateUserAddress(UserAddress userAddress) {
         UserAddress tempAddress = getUserAddressById(userAddress.getAddressId());
         Date now = new Date();

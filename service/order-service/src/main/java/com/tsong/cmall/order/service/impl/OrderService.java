@@ -23,6 +23,7 @@ import com.tsong.feign.clients.user.address.AddressClient;
 import com.tsong.feign.clients.coupon.CouponClient;
 import com.tsong.feign.clients.goods.GoodsClient;
 import com.tsong.feign.clients.shopping_cart.ShoppingCartClient;
+import io.seata.spring.annotation.GlobalTransactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -65,6 +66,7 @@ public class OrderService implements IOrderService {
     private MessageHandler messageHandler;
 
     @Override
+    @GlobalTransactional
     public String saveOrder(Long userId, Long couponUserId, Long addressId, Long[] cartItemIds) {
         // 购物车项目id表
         List<Long> itemIdList = Arrays.asList(cartItemIds);
@@ -280,7 +282,6 @@ public class OrderService implements IOrderService {
     }
 
     @Override
-    @Transactional
     public String cancelOrder(String orderNo, Long userId) {
         Order order = orderMapper.selectByOrderNo(orderNo);
         if (order != null) {
@@ -416,6 +417,7 @@ public class OrderService implements IOrderService {
     }
 
     @Override
+    @Transactional
     public void handleSeckillSaveOrder(Long userId, Long seckillId, Long goodsId,
                                        Long addressId, BigDecimal seckillPrice) {
 

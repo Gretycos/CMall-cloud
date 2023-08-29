@@ -14,6 +14,7 @@ import com.tsong.cmall.user.web.params.MallUserPasswordParam;
 import com.tsong.cmall.user.web.params.MallUserUpdateParam;
 import com.tsong.cmall.user.web.vo.MallUserVO;
 import com.tsong.feign.clients.coupon.CouponClient;
+import io.seata.spring.annotation.GlobalTransactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -42,6 +43,7 @@ public class MallUserService implements IMallUserService {
     private RedisCache redisCache;
 
     @Override
+    @GlobalTransactional
     public String register(String loginName, String password) {
         if (mallUserMapper.selectByLoginName(loginName) != null) {
             return ServiceResultEnum.SAME_LOGIN_NAME_EXIST.getResult();

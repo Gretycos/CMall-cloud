@@ -367,6 +367,7 @@ public class CouponService implements ICouponService {
     }
 
     @Override
+    @Transactional
     public void insertUserCouponRecordBatch(List<UserCouponRecord> userCouponRecordList) {
         for (UserCouponRecord userCouponRecord : userCouponRecordList) {
             if (userCouponRecordMapper.insertSelective(userCouponRecord) <= 0){

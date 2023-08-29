@@ -41,3 +41,19 @@ mybatis:
   mapper-locations: classpath:mapper/*Mapper.xml
   configuration:
     map-underscore-to-camel-case: true
+
+seata:
+  registry:
+    type: nacos
+    nacos:
+      server-addr: 127.0.0.1:8848
+      namespace: ""
+      group: DEFAULT_GROUP
+      application: seata-tc-server
+      username:
+      password:
+  tx-service-group: seata-cmall-order # 事务组名称
+  service:
+    vgroup-mapping:
+      seata-cmall-order: default
+#  data-source-proxy-mode: XA # 默认AT

@@ -6,10 +6,13 @@ package com.tsong.feign.clients.shopping_cart;
  */
 
 import com.tsong.cmall.common.util.Result;
+import com.tsong.cmall.vo.ShoppingCartItemVO;
 import com.tsong.feign.clients.shopping_cart.fallback.ShoppingCartClientFallbackFactory;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
 
 import java.util.List;
 
@@ -18,8 +21,8 @@ public interface ShoppingCartClient {
     String RPC_SUFFIX = "/rpc/shopping-cart";
 
     @DeleteMapping(RPC_SUFFIX + "/batch")
-    Result deleteCartItemsByIds(List<Long> cartItemIds);
+    Result<Boolean> deleteCartItemsByIds(@RequestBody List<Long> cartItemIds);
 
     @GetMapping(RPC_SUFFIX + "/cartItems")
-    Result getCartItemsByIds(List<Long> cartItemIds);
+    Result<List<ShoppingCartItemVO>> getCartItemsByIds(@RequestParam List<Long> cartItemIds);
 }

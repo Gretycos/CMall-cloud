@@ -70,7 +70,7 @@ public class MQConfig {
 
     @Bean
     public Binding ttlSeckillBinding() {
-        return BindingBuilder.bind(ttlQueue()).to(directExchange()).with(ORDER_SECKILL_UNPAID);
+        return BindingBuilder.bind(ttlSeckillQueue()).to(directExchange()).with(ORDER_SECKILL_UNPAID);
     }
 
     @Bean

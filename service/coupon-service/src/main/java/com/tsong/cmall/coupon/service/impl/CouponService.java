@@ -186,7 +186,7 @@ public class CouponService implements ICouponService {
     }
 
     @Override
-    public List<MyCouponVO> selectCouponsForOrderConfirm(List<ShoppingCartItemVO> myShoppingCartItems, BigDecimal priceTotal, Long userId) {
+    public List<MyCouponVO> selectCouponsForOrderConfirm(List<Long> shoppingCartGoodsIdList, BigDecimal priceTotal, Long userId) {
         List<UserCouponRecord> userCouponRecordList = userCouponRecordMapper.selectMyAvailableCoupons(userId);
         List<Long> couponIds = userCouponRecordList.stream().map(UserCouponRecord::getCouponId).toList();
         List<MyCouponVO> myCouponVOList = new ArrayList<>();
@@ -212,14 +212,14 @@ public class CouponService implements ICouponService {
                     // 券的可用分类id / 商品id
                     Set<Long> goodsValueSet = Arrays.stream(split).map(Long::valueOf).collect(toSet());
                     // 从购物车里查找物品
-                    List<Long> goodsIds = myShoppingCartItems.stream().map(ShoppingCartItemVO::getGoodsId).toList();
+                    List<Long> goodsIds = shoppingCartGoodsIdList;
 
                     if (item.getGoodsType() == 1) { // 指定分类可用
-                        Result goodsListResult = goodsClient.getGoodsListByIds(goodsIds);
+                        Result<List<GoodsInfo>> goodsListResult = goodsClient.getGoodsListByIds(goodsIds);
                         if (goodsListResult.getResultCode() != 200){
                             CMallException.fail("rpc error: " + goodsListResult.getMessage());
                         }
-                        List<GoodsInfo> goodsList = (List<GoodsInfo>) goodsListResult.getData();
+                        List<GoodsInfo> goodsList = goodsListResult.getData();
                         // 分类id集
                         Set<Long> categoryIds = goodsList.stream().map(GoodsInfo::getGoodsCategoryId).collect(toSet());
                         for (Long categoryId : categoryIds) {
@@ -326,22 +326,22 @@ public class CouponService implements ICouponService {
         }
         List<GoodsInfo> goodsInfoList = new ArrayList<>();
         if (!goodsIds.isEmpty()){
-            Result goodsListResult = goodsClient.getGoodsListByIds(goodsIds.stream().toList());
+            Result<List<GoodsInfo>> goodsListResult = goodsClient.getGoodsListByIds(goodsIds.stream().toList());
             if (goodsListResult.getResultCode() != 200){
                 CMallException.fail("rpc error: " + goodsListResult.getMessage());
             }
-            goodsInfoList = (List<GoodsInfo>) goodsListResult.getData();
+            goodsInfoList = goodsListResult.getData();
             for (GoodsInfo goodsInfo : goodsInfoList) {
                 categoryIds.add(goodsInfo.getGoodsCategoryId());
             }
         }
         List<GoodsCategory> goodsCategoryList = new ArrayList<>();
         if (!categoryIds.isEmpty()){
-            Result goodsCategoryListResult = goodsClient.getGoodsCategoryListByIds(categoryIds.stream().toList());
+            Result<List<GoodsCategory>> goodsCategoryListResult = goodsClient.getGoodsCategoryListByIds(categoryIds.stream().toList());
             if (goodsCategoryListResult.getResultCode() != 200){
 
             }
-            goodsCategoryList = (List<GoodsCategory>) goodsCategoryListResult.getData();
+            goodsCategoryList = goodsCategoryListResult.getData();
         }
 
         Map<Long, String> categoryNamesMap = goodsCategoryList.stream().collect(

@@ -17,7 +17,7 @@
     <result column="update_time" jdbcType="TIMESTAMP" property="updateTime" />
   </resultMap>
   <sql id="Base_Column_List">
-    order_id, order_no, user_id, seckillId, total_price, pay_status, pay_type, pay_time, order_status,
+    order_id, order_no, user_id, seckill_Id, total_price, pay_status, pay_type, pay_time, order_status,
     extra_info, is_deleted, create_time, update_time
   </sql>
 

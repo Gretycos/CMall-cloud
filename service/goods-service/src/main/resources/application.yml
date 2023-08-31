@@ -8,10 +8,11 @@ spring:
     username: root
     password: 123456
     hikari:
-      maximum-pool-size: 1500
-      connection-timeout: 30000
-      max-lifetime: 60000
-      idle-timeout: 600000
+      minimum-idle: 10 # 启动时连接数
+      maximum-pool-size: 50
+      connection-timeout: 30000 # 创建连接等待时间
+      max-lifetime: 600000 # 活跃最长时间
+      idle-timeout: 60000 # 空闲最长时间
 
   rabbitmq:
     host: 127.0.0.1
@@ -23,7 +24,7 @@ spring:
     listener:
       simple:
         prefetch: 1
-        acknowledge-mode: auto
+        acknowledge-mode: manual
         retry:
           enabled: true
           initial-interval: 1000

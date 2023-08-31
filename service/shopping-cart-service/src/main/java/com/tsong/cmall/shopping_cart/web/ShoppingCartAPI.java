@@ -37,7 +37,7 @@ public class ShoppingCartAPI {
     @PostMapping("/")
     @Operation(summary = "添加商品到购物车接口", description = "传参为商品id、数量")
     public Result saveShoppingCartItem(@Parameter(name = "保存购物车项参数") @RequestBody @Valid SaveCartItemParam saveCartItemParam,
-                                       Long userId) {
+                                       @RequestParam Long userId) {
         String saveResult = shoppingCartService.saveShoppingCartItem(saveCartItemParam, userId);
         //添加成功
         if (ServiceResultEnum.SUCCESS.getResult().equals(saveResult)) {
@@ -50,7 +50,7 @@ public class ShoppingCartAPI {
     @PutMapping("/")
     @Operation(summary = "修改购物项数据", description = "传参为购物项id、数量")
     public Result updateShoppingCartItem(@Parameter(name = "更新购物车项参数") @RequestBody @Valid UpdateCartItemParam updateCartItemParam,
-                                         Long userId) {
+                                         @RequestParam Long userId) {
         String updateResult = shoppingCartService.updateShoppingCartItem(updateCartItemParam, userId);
         //修改成功
         if (ServiceResultEnum.SUCCESS.getResult().equals(updateResult)) {
@@ -63,7 +63,7 @@ public class ShoppingCartAPI {
     @DeleteMapping("/{ShoppingCartItemId}")
     @Operation(summary = "删除购物项", description = "传参为购物项id")
     public Result updateShoppingCartItem(@Parameter(name = "购物车项id") @PathVariable("ShoppingCartItemId") Long shoppingCartItemId,
-                                         Long userId) {
+                                         @RequestParam Long userId) {
         ShoppingCartItem shoppingCartItem = shoppingCartService.getShoppingCartItemById(shoppingCartItemId);
         if (userId.equals(shoppingCartItem.getUserId())) {
             return ResultGenerator.genFailResult(ServiceResultEnum.REQUEST_FORBIDDEN_ERROR.getResult());
@@ -80,7 +80,7 @@ public class ShoppingCartAPI {
     @PostMapping("/confirm")
     @Operation(summary = "根据购物项id数组查询购物项明细和可用优惠券", description = "确认订单页面使用")
     public Result confirmCartItem(@Parameter(name = "购物车项id列表") @RequestBody @Valid CartConfirmParam cartConfirmParam,
-                                  Long userId) {
+                                  @RequestParam Long userId) {
         Long[] cartItemIds = cartConfirmParam.getCartItemIds();
         return ResultGenerator.genSuccessResult(shoppingCartService.getCartItemsForConfirmPage(Arrays.asList(cartItemIds), userId));
     }

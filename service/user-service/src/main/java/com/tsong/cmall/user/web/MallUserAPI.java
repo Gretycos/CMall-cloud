@@ -11,6 +11,7 @@ import com.tsong.cmall.user.web.params.MallUserLoginParam;
 import com.tsong.cmall.user.web.params.MallUserPasswordParam;
 import com.tsong.cmall.user.web.params.MallUserRegisterParam;
 import com.tsong.cmall.user.web.params.MallUserUpdateParam;
+import com.tsong.cmall.user.web.vo.LoginVO;
 import com.tsong.cmall.user.web.vo.MallUserVO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -36,23 +37,20 @@ public class MallUserAPI {
     private static final Logger logger = LoggerFactory.getLogger(MallUserAPI.class);
 
     @PostMapping("/login")
-    @Operation(summary = "登录接口", description = "返回token")
-    public Result<String> login(@RequestBody @Valid MallUserLoginParam mallUserLoginParam) {
+    @Operation(summary = "登录接口", description = "返回userId和token")
+    public Result login(@RequestBody @Valid MallUserLoginParam mallUserLoginParam) {
         if (!NumberUtil.isPhone(mallUserLoginParam.getLoginName())){
             return ResultGenerator.genFailResult(ServiceResultEnum.LOGIN_NAME_IS_NOT_PHONE.getResult());
         }
-        String loginResult = userService.login(mallUserLoginParam.getLoginName(), mallUserLoginParam.getPasswordMd5());
+        LoginVO loginVO = userService.login(mallUserLoginParam.getLoginName(), mallUserLoginParam.getPasswordMd5());
 
-        logger.debug("login, loginName={},loginResult={}", mallUserLoginParam.getLoginName(), loginResult);
+        logger.debug("login, loginName={}", mallUserLoginParam.getLoginName());
 
-        //登录成功
-        if (StringUtils.hasText(loginResult) && loginResult.length() == Constants.TOKEN_LENGTH) {
-            Result result = ResultGenerator.genSuccessResult();
-            result.setData(loginResult);
-            return result;
+        if (loginVO != null){
+            return ResultGenerator.genSuccessResult(loginVO);
         }
         //登录失败
-        return ResultGenerator.genFailResult(loginResult);
+        return ResultGenerator.genFailResult(ServiceResultEnum.LOGIN_ERROR.getResult());
     }
 
 

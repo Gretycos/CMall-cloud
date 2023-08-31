@@ -62,7 +62,7 @@ public interface ICouponService {
      * @Param [myShoppingCartItems, priceTotal, userId]
      * @Return java.util.List<com.tsong.cmall.controller.vo.CouponVO>
      */
-    List<MyCouponVO> selectCouponsForOrderConfirm(List<ShoppingCartItemVO> myShoppingCartItems,
+    List<MyCouponVO> selectCouponsForOrderConfirm(List<Long> shoppingCartGoodsIdList,
                                                   BigDecimal priceTotal, Long userId);
 
     /**

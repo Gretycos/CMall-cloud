@@ -41,7 +41,7 @@ public class CouponClientFallbackFactory implements FallbackFactory<CouponClient
             }
 
             @Override
-            public Result getCouponsForOrderConfirm(List<ShoppingCartItemVO> shoppingCartItemVOList, BigDecimal priceTotal, Long userId) {
+            public Result getCouponsForOrderConfirm(List<Long> shoppingCartGoodsIdList, BigDecimal priceTotal, Long userId) {
                 return result;
             }
         };

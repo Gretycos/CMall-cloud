@@ -1,13 +1,13 @@
 package com.tsong.feign.clients.coupon;
 
 import com.tsong.cmall.common.util.Result;
+import com.tsong.cmall.entity.Coupon;
 import com.tsong.cmall.entity.UserCouponRecord;
+import com.tsong.cmall.vo.MyCouponVO;
 import com.tsong.cmall.vo.ShoppingCartItemVO;
 import com.tsong.feign.clients.coupon.fallback.CouponClientFallbackFactory;
 import org.springframework.cloud.openfeign.FeignClient;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -23,17 +23,19 @@ public interface CouponClient {
     String RPC_SUFFIX = "/rpc/coupon";
 
     @PostMapping(RPC_SUFFIX + "/send")
-    Result sendNewUserCoupons(Long userId);
+    Result<Boolean> sendNewUserCoupons(@RequestParam Long userId);
 
     @GetMapping(RPC_SUFFIX + "/byUserCouponId")
-    Result getCouponByCouponUserId(Long id);
+    Result<Coupon> getCouponByCouponUserId(@RequestParam Long id);
 
     @PutMapping(RPC_SUFFIX + "/record")
-    Result updateUserCouponRecord(UserCouponRecord userCouponRecord);
+    Result<Integer> updateUserCouponRecord(@RequestBody UserCouponRecord userCouponRecord);
 
     @GetMapping(RPC_SUFFIX + "/byOrderId")
-    Result getCouponByOrderId(Long id);
+    Result<Coupon> getCouponByOrderId(@RequestParam Long id);
 
     @GetMapping(RPC_SUFFIX + "/forOrderConfirm")
-    Result getCouponsForOrderConfirm(List<ShoppingCartItemVO> shoppingCartItemVOList, BigDecimal priceTotal, Long userId);
+    Result<List<MyCouponVO>> getCouponsForOrderConfirm(@RequestParam List<Long> shoppingCartGoodsIdList,
+                                                       @RequestParam BigDecimal priceTotal,
+                                                       @RequestParam Long userId);
 }

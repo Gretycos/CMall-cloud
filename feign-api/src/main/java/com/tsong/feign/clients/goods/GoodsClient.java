@@ -1,9 +1,13 @@
 package com.tsong.feign.clients.goods;
 
 import com.tsong.cmall.common.util.Result;
+import com.tsong.cmall.entity.GoodsCategory;
+import com.tsong.cmall.entity.GoodsInfo;
 import com.tsong.feign.clients.goods.fallback.GoodsClientFallbackFactory;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 
 import java.util.List;
 
@@ -16,11 +20,11 @@ public interface GoodsClient {
     String RPC_SUFFIX = "/rpc/goods";
 
     @GetMapping(RPC_SUFFIX + "/")
-    Result getGoodsById(Long id);
+    Result<GoodsInfo> getGoodsById(@RequestParam Long id);
 
     @GetMapping(RPC_SUFFIX + "/list")
-    Result getGoodsListByIds(List<Long> ids);
+    Result<List<GoodsInfo>> getGoodsListByIds(@RequestParam List<Long> ids);
 
     @GetMapping(RPC_SUFFIX + "/category/list")
-    Result getGoodsCategoryListByIds(List<Long> ids);
+    Result<List<GoodsCategory>> getGoodsCategoryListByIds(@RequestParam List<Long> ids);
 }

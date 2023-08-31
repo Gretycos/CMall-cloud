@@ -2,8 +2,22 @@ server:
   port: 10010
 
 spring:
+  main:
+    web-application-type: reactive
+
   application:
     name: gateway
+
+  data:
+    redis:
+      host: 127.0.0.1
+      port: 6379
+      database: 0
+      password: 123456
+      connect-timeout: 5000ms
+      timeout: 5000ms
+      client-type: lettuce
+
   cloud:
     nacos:
       discovery:
@@ -25,7 +39,7 @@ spring:
         - id: goods-service
           uri: lb://goods-service
           predicates:
-            - Path=/api/goods/**
+            - Path=/api/goods/**,/api/homepage/**
         - id: seckill-service
           uri: lb://seckill-service
           predicates:

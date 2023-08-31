@@ -6,6 +6,7 @@ import com.tsong.cmall.common.exception.CMallException;
 import com.tsong.cmall.common.mq.MessageHandler;
 import com.tsong.cmall.common.util.*;
 import com.tsong.cmall.entity.*;
+import com.tsong.cmall.msg.SeckillStockMsg;
 import com.tsong.cmall.order.enums.OrderStatusEnum;
 import com.tsong.cmall.order.enums.PayStatusEnum;
 import com.tsong.cmall.order.enums.PayTypeEnum;
@@ -72,22 +73,22 @@ public class OrderService implements IOrderService {
         List<Long> itemIdList = Arrays.asList(cartItemIds);
 
         // 查询参与结算的购物车项目
-        Result cartItemsResult = shoppingCartClient.getCartItemsByIds(itemIdList);
+        Result<List<ShoppingCartItemVO>> cartItemsResult = shoppingCartClient.getCartItemsByIds(itemIdList);
         if (cartItemsResult.getResultCode() != 200) {
             CMallException.fail(RPC_ERROR.getResult() + cartItemsResult.getMessage());
         }
-        List<ShoppingCartItemVO> shoppingCartItemList = (List<ShoppingCartItemVO>) cartItemsResult.getData();
+        List<ShoppingCartItemVO> shoppingCartItemList = cartItemsResult.getData();
 
         // 商品id表
         List<Long> goodsIds = shoppingCartItemList.stream()
                 .map(ShoppingCartItemVO::getGoodsId).collect(Collectors.toList());
 
         // 商品表
-        Result goodsListResult = goodsClient.getGoodsListByIds(goodsIds);
+        Result<List<GoodsInfo>> goodsListResult = goodsClient.getGoodsListByIds(goodsIds);
         if (goodsListResult.getResultCode() != 200){
             CMallException.fail(RPC_ERROR.getResult() + goodsListResult.getMessage());
         }
-        List<GoodsInfo> goodsInfoList = (List<GoodsInfo>) goodsListResult.getData();
+        List<GoodsInfo> goodsInfoList = goodsListResult.getData();
 
         // 检查是否包含已下架商品
         List<GoodsInfo> goodsListNotSelling = goodsInfoList.stream()
@@ -116,7 +117,7 @@ public class OrderService implements IOrderService {
         }
 
         // 购物车清空结算的项目
-        Result shoppingCartDeleteResult = shoppingCartClient.deleteCartItemsByIds(itemIdList);
+        Result<Boolean> shoppingCartDeleteResult = shoppingCartClient.deleteCartItemsByIds(itemIdList);
         if (shoppingCartDeleteResult.getResultCode() != 200) {
             CMallException.fail(RPC_ERROR.getResult() + shoppingCartDeleteResult.getMessage());
         }
@@ -142,11 +143,11 @@ public class OrderService implements IOrderService {
         // 如果使用了优惠券
         if (couponUserId != null) {
             // 查找领券记录
-            Result couponResult = couponClient.getCouponByCouponUserId(couponUserId);
+            Result<Coupon> couponResult = couponClient.getCouponByCouponUserId(couponUserId);
             if (couponResult.getResultCode() != 200){
                 CMallException.fail(RPC_ERROR.getResult() + couponResult.getMessage());
             }
-            Coupon coupon = (Coupon) couponResult.getData();
+            Coupon coupon = couponResult.getData();
             priceTotal = priceTotal.subtract(new BigDecimal(coupon.getDiscount()));
 
             // 更新优惠券使用状态
@@ -157,11 +158,11 @@ public class OrderService implements IOrderService {
                     .usedTime(new Date())
                     .updateTime(new Date())
                     .build();
-            Result updateResult = couponClient.updateUserCouponRecord(userCouponRecord);
+            Result<Integer> updateResult = couponClient.updateUserCouponRecord(userCouponRecord);
             if (updateResult.getResultCode() != 200){
                 CMallException.fail(RPC_ERROR.getResult() + updateResult.getMessage());
             }
-            if ((int) updateResult.getData() <= 0){
+            if (updateResult.getData() <= 0){
                 CMallException.fail(ServiceResultEnum.DB_ERROR.getResult());
             }
         }
@@ -422,11 +423,11 @@ public class OrderService implements IOrderService {
                                        Long addressId, BigDecimal seckillPrice) {
 
         // 查找商品
-        Result goodsResult = goodsClient.getGoodsById(goodsId);
+        Result<GoodsInfo> goodsResult = goodsClient.getGoodsById(goodsId);
         if (goodsResult.getResultCode() != 200) {
             CMallException.fail(RPC_ERROR.getResult() + goodsResult.getMessage());
         }
-        GoodsInfo goodsInfo = (GoodsInfo) goodsResult.getData();
+        GoodsInfo goodsInfo = goodsResult.getData();
 
         // 生成订单号
         String orderNo = NumberUtil.genOrderNo();
@@ -471,11 +472,11 @@ public class OrderService implements IOrderService {
      * @Return com.tsong.cmall.entity.UserAddress
      */
     private UserAddress getUserAddress_RPC(Long addressId) {
-        Result addressResult = addressClient.getAddressById(addressId);
+        Result<UserAddress> addressResult = addressClient.getAddressById(addressId);
         if (addressResult.getResultCode() != 200) {
             CMallException.fail(RPC_ERROR.getResult() + addressResult.getMessage());
         }
-        UserAddress address = (UserAddress) addressResult.getData();
+        UserAddress address = addressResult.getData();
         return address;
     }
 
@@ -523,11 +524,11 @@ public class OrderService implements IOrderService {
         orderDetailVO.setOrderItemVOList(orderItemVOList);
 
         // 优惠券信息
-        Result couponResult = couponClient.getCouponByOrderId(order.getOrderId());
+        Result<Coupon> couponResult = couponClient.getCouponByOrderId(order.getOrderId());
         if (couponResult.getResultCode() != 200){
             CMallException.fail(RPC_ERROR.getResult() + couponResult.getMessage());
         }
-        Coupon coupon = (Coupon) couponResult.getData();
+        Coupon coupon = couponResult.getData();
         orderDetailVO.setDiscount(new BigDecimal(coupon.getDiscount()));
         return orderDetailVO;
     }
@@ -569,10 +570,10 @@ public class OrderService implements IOrderService {
     }
 
     private void recoverSeckillStock(Long userId, Long seckillId){
-        Map<String, Object> msg = new HashMap<>(2);
-        msg.put("userId", userId);
-        msg.put("seckillId", seckillId);
-        messageHandler.sendMessage(CMALL_DIRECT, SECKILL_STOCK_RECOVER, msg);
+        SeckillStockMsg seckillStockMsg = new SeckillStockMsg();
+        seckillStockMsg.setUserId(userId);
+        seckillStockMsg.setSeckillId(seckillId);
+        messageHandler.sendMessage(CMALL_DIRECT, SECKILL_STOCK_RECOVER, seckillStockMsg);
     }
 
 }

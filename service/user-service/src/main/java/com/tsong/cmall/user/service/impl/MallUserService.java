@@ -12,6 +12,7 @@ import com.tsong.cmall.user.mapper.UserTokenMapper;
 import com.tsong.cmall.user.redis.RedisCache;
 import com.tsong.cmall.user.web.params.MallUserPasswordParam;
 import com.tsong.cmall.user.web.params.MallUserUpdateParam;
+import com.tsong.cmall.user.web.vo.LoginVO;
 import com.tsong.cmall.user.web.vo.MallUserVO;
 import com.tsong.feign.clients.coupon.CouponClient;
 import io.seata.spring.annotation.GlobalTransactional;
@@ -60,7 +61,7 @@ public class MallUserService implements IMallUserService {
         }
         // 添加注册赠券
         // 添加领券记录
-        Result sendCouponsResult = couponClient.sendNewUserCoupons(registerUser.getUserId());
+        Result<Boolean> sendCouponsResult = couponClient.sendNewUserCoupons(registerUser.getUserId());
         if (sendCouponsResult.getResultCode() != 200){
             CMallException.fail(RPC_ERROR.getResult() + sendCouponsResult.getMessage());
         }
@@ -68,12 +69,14 @@ public class MallUserService implements IMallUserService {
     }
 
     @Override
-    public String login(String loginName, String passwordMD5) {
+    public LoginVO login(String loginName, String passwordMD5) {
         MallUser user = mallUserMapper.selectByLoginNameAndPasswd(loginName, passwordMD5);
         if (user != null) {
             if (user.getLockedFlag() == 1) {
-                return ServiceResultEnum.LOGIN_USER_LOCKED_ERROR.getResult();
+                CMallException.fail(ServiceResultEnum.LOGIN_USER_LOCKED_ERROR.getResult());
             }
+
+            LoginVO loginVO = new LoginVO();
             // 新token
             String token = genNewToken(System.currentTimeMillis() + "", user.getUserId());
             // 当前时间
@@ -92,29 +95,33 @@ public class MallUserService implements IMallUserService {
                         .build();
                 //新增一条token数据
                 if (userTokenMapper.insertSelective(userToken) > 0) {
-                    redisCache.setCacheObject(MALL_USER_TOKEN_KEY + token, user.getUserId(),
+                    redisCache.setCacheObject(MALL_USER_ID_TOKEN_KEY + user.getUserId(), token,
                             TOKEN_EXPIRED_TIME, TimeUnit.MILLISECONDS);
                     //新增成功后返回
-                    return token;
+                    loginVO.setUserId(user.getUserId());
+                    loginVO.setToken(token);
+                    return loginVO;
                 }
             } else {
                 // 单点登录
                 // 删除
-                redisCache.deleteObject(MALL_USER_TOKEN_KEY + userToken.getToken());
+                redisCache.deleteObject(MALL_USER_ID_TOKEN_KEY + user.getUserId());
                 // 用户登录过，修改token
                 userToken.setToken(token);
                 userToken.setUpdateTime(now);
                 userToken.setExpireTime(expireTime);
-                redisCache.setCacheObject(MALL_USER_TOKEN_KEY + token, user,
+                redisCache.setCacheObject(MALL_USER_ID_TOKEN_KEY + user.getUserId(), token,
                         TOKEN_EXPIRED_TIME, TimeUnit.MILLISECONDS);
                 //更新
                 if (userTokenMapper.updateByPrimaryKeySelective(userToken) > 0) {
                     //修改成功后返回
-                    return token;
+                    loginVO.setUserId(user.getUserId());
+                    loginVO.setToken(token);
+                    return loginVO;
                 }
             }
         }
-        return ServiceResultEnum.LOGIN_ERROR.getResult();
+        return null;
     }
 
     @Override
@@ -172,12 +179,11 @@ public class MallUserService implements IMallUserService {
 
     @Override
     public Boolean logout(Long userId) {
-        String token = userTokenMapper.selectByPrimaryKey(userId).getToken();
         if (userTokenMapper.deleteByPrimaryKey(userId) <= 0){
             return false;
         }
         // 清除用户信息和登录信息
-        redisCache.deleteObject(MALL_USER_TOKEN_KEY + token);
+        redisCache.deleteObject(MALL_USER_ID_TOKEN_KEY + userId);
         redisCache.deleteObject(MALL_USER_INFO_KEY + userId);
         return true;
     }

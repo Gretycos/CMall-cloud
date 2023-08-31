@@ -12,6 +12,7 @@ import com.tsong.cmall.seckill.web.vo.SeckillGoodsVO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -19,6 +20,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Date;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 
@@ -55,11 +57,10 @@ public class SeckillAPI {
         return ResultGenerator.genSuccessResult(seckillService.exposeUrl(seckillId));
     }
 
-
     @PostMapping("/execute")
     @Operation(summary = "处理秒杀", description = "")
     public Result execute(@Parameter(name = "秒杀事件参数") @RequestBody @Valid SeckillExeParam seckillExeParam,
-                          Long userId){
+                          @RequestParam Long userId){
         String md5 = seckillExeParam.getMd5();
         Long seckillId = seckillExeParam.getSeckillId();
         Long addressId = seckillExeParam.getAddressId();

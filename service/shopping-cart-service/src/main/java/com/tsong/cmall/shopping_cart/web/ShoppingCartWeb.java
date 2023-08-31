@@ -3,12 +3,10 @@ package com.tsong.cmall.shopping_cart.web;
 import com.tsong.cmall.common.util.Result;
 import com.tsong.cmall.common.util.ResultGenerator;
 import com.tsong.cmall.shopping_cart.service.IShoppingCartService;
+import com.tsong.cmall.vo.ShoppingCartItemVO;
 import io.swagger.v3.oas.annotations.Operation;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
@@ -24,13 +22,13 @@ public class ShoppingCartWeb {
 
     @DeleteMapping("/batch")
     @Operation(summary = "用ids删除购物车项", description = "rpc")
-    public Result deleteCartItemsByIds(List<Long> cartItemIds){
+    public Result<Boolean> deleteCartItemsByIds(@RequestBody List<Long> cartItemIds){
         return ResultGenerator.genSuccessResult(shoppingCartService.deleteByIds(cartItemIds));
     }
 
     @GetMapping("/cartItems")
     @Operation(summary = "用ids查询购物车项", description = "rpc")
-    Result getCartItemsByIds(List<Long> cartItemIds){
+    Result<List<ShoppingCartItemVO>> getCartItemsByIds(@RequestParam List<Long> cartItemIds){
         return ResultGenerator.genSuccessResult(shoppingCartService.getShoppingCartItemsByIds(cartItemIds));
     }
 }

@@ -68,6 +68,9 @@ public class SeckillService implements ISeckillService {
     @Override
     public UrlExposerVO exposeUrl(Long seckillId) {
         SeckillGoodsVO seckillGoodsVO = redisCache.getCacheObject(Constants.SECKILL_GOODS_DETAIL + seckillId);
+        if (seckillGoodsVO == null) {
+            seckillGoodsVO = getSeckillGoodsDetail(seckillId);
+        }
         Date startTime = seckillGoodsVO.getSeckillBegin();
         Date endTime = seckillGoodsVO.getSeckillEnd();
         // 系统当前时间
@@ -188,21 +191,14 @@ public class SeckillService implements ISeckillService {
         BeanUtil.copyProperties(seckill, seckillGoodsVO);
 
         // 秒杀的商品
-        Result goodsResult = goodsClient.getGoodsById(seckill.getGoodsId());
+        Result<GoodsInfo> goodsResult = goodsClient.getGoodsById(seckill.getGoodsId());
         if (goodsResult.getResultCode() != 200){
             CMallException.fail(RPC_ERROR.getResult() + goodsResult.getMessage());
         }
-        GoodsInfo goodsInfo = (GoodsInfo) goodsResult.getData();
+        GoodsInfo goodsInfo = goodsResult.getData();
 
         BeanUtil.copyProperties(goodsInfo, seckillGoodsVO);
-//        seckillGoodsVO.setGoodsName(goodsInfo.getGoodsName());
-//        seckillGoodsVO.setGoodsIntro(goodsInfo.getGoodsIntro());
-//        seckillGoodsVO.setGoodsDetailContent(goodsInfo.getGoodsDetailContent());
-//        seckillGoodsVO.setGoodsCoverImg(goodsInfo.getGoodsCoverImg());
         seckillGoodsVO.setGoodsCarousel(goodsInfo.getGoodsCarousel().split(","));
-//        seckillGoodsVO.setSellingPrice(goodsInfo.getSellingPrice());
-//        seckillGoodsVO.setSeckillBegin(seckillGoodsVO.getSeckillBegin());
-//        seckillGoodsVO.setSeckillEnd(seckillGoodsVO.getSeckillEnd());
 
         // 放入redis
         redisCache.setCacheObject(Constants.SECKILL_GOODS_DETAIL + seckillId, seckillGoodsVO);
@@ -228,11 +224,11 @@ public class SeckillService implements ISeckillService {
                 return null;
             }
             // 查找商品
-            Result goodsResult = goodsClient.getGoodsById(seckill.getGoodsId());
+            Result<GoodsInfo> goodsResult = goodsClient.getGoodsById(seckill.getGoodsId());
             if (goodsResult.getResultCode() != 200){
                 CMallException.fail(RPC_ERROR.getResult() + goodsResult.getMessage());
             }
-            GoodsInfo goodsInfo = (GoodsInfo) goodsResult.getData();
+            GoodsInfo goodsInfo = goodsResult.getData();
             if (goodsInfo == null) {
                 return null;
             }

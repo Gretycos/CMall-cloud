@@ -41,7 +41,7 @@ public class GoodsInfoAPI {
                               @RequestParam(required = false) @Parameter(name = "分类id") Long goodsCategoryId,
                               @RequestParam(required = false) @Parameter(name = "orderBy") String orderBy,
                               @RequestParam(required = false) @Parameter(name = "页码") Integer pageNumber,
-                              Long userId) {
+                              @RequestParam Long userId) {
 
         logger.info("goodsSearch, keyword={},goodsCategoryId={},orderBy={},pageNumber={},userId={}",
                 keyword, goodsCategoryId, orderBy, pageNumber, userId);

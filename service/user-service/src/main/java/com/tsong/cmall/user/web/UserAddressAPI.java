@@ -30,14 +30,14 @@ public class UserAddressAPI {
 
     @GetMapping("/")
     @Operation(summary = "我的收货地址列表", description = "")
-    public Result addressList(Long userId) {
+    public Result addressList(@RequestParam Long userId) {
         return ResultGenerator.genSuccessResult(userAddressService.getMyAddresses(userId));
     }
 
     @PostMapping("/")
     @Operation(summary = "添加地址", description = "")
     public Result<Boolean> saveUserAddress(@Parameter(name = "新增地址参数")@RequestBody @Valid SaveUserAddressParam saveUserAddressParam,
-                                           Long userId) {
+                                           @RequestParam Long userId) {
         UserAddress userAddress = new UserAddress();
         BeanUtil.copyProperties(saveUserAddressParam, userAddress);
         userAddress.setUserId(userId);
@@ -53,7 +53,7 @@ public class UserAddressAPI {
     @PutMapping("/")
     @Operation(summary = "修改地址", description = "")
     public Result<Boolean> updateUserAddress(@Parameter(name = "修改地址参数")@RequestBody @Valid UpdateUserAddressParam updateUserAddressParam,
-                                             Long userId) {
+                                             @RequestParam Long userId) {
         UserAddress userAddressFromDB = userAddressService.getUserAddressById(updateUserAddressParam.getAddressId());
         if (!userId.equals(userAddressFromDB.getUserId())) {
             return ResultGenerator.genFailResult(ServiceResultEnum.REQUEST_FORBIDDEN_ERROR.getResult());
@@ -73,7 +73,7 @@ public class UserAddressAPI {
     @GetMapping("/{addressId}")
     @Operation(summary = "获取收货地址详情", description = "传参为地址id")
     public Result getUserAddress(@Parameter(name = "地址id")@PathVariable("addressId") Long addressId,
-                                                Long userId) {
+                                 @RequestParam Long userId) {
         UserAddress userAddress = userAddressService.getUserAddressById(addressId);
         UserAddressVO userAddressVO = new UserAddressVO();
         BeanUtil.copyProperties(userAddress, userAddressVO);
@@ -85,7 +85,7 @@ public class UserAddressAPI {
 
     @GetMapping("/default")
     @Operation(summary = "获取默认收货地址", description = "无传参")
-    public Result getDefaultUserAddress(Long userId) {
+    public Result getDefaultUserAddress(@RequestParam Long userId) {
         UserAddress mallUserAddressById = userAddressService.getMyDefaultAddressByUserId(userId);
         return ResultGenerator.genSuccessResult(mallUserAddressById);
     }
@@ -93,7 +93,7 @@ public class UserAddressAPI {
     @DeleteMapping("/{addressId}")
     @Operation(summary = "删除收货地址", description = "传参为地址id")
     public Result deleteAddress(@Parameter(name = "地址id") @PathVariable("addressId") Long addressId,
-                                Long userId) {
+                                @RequestParam Long userId) {
         UserAddress mallUserAddressById = userAddressService.getUserAddressById(addressId);
         if (!userId.equals(mallUserAddressById.getUserId())) {
             return ResultGenerator.genFailResult(ServiceResultEnum.REQUEST_FORBIDDEN_ERROR.getResult());

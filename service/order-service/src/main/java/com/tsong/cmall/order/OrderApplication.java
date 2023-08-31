@@ -8,6 +8,7 @@ import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.cloud.openfeign.EnableFeignClients;
+import org.springframework.context.annotation.ComponentScan;
 
 /**
  * @Author Tsong
@@ -15,6 +16,7 @@ import org.springframework.cloud.openfeign.EnableFeignClients;
  */
 @EnableFeignClients(clients = {ShoppingCartClient.class, GoodsClient.class, CouponClient.class, AddressClient.class})
 @MapperScan("com.tsong.cmall.order.mapper")
+@ComponentScan(value = "com.tsong.cmall.*")
 @SpringBootApplication
 public class OrderApplication {
     public static void main(String[] args) {

@@ -8,10 +8,11 @@ spring:
     username: root
     password: 123456
     hikari:
-      maximum-pool-size: 1500
-      connection-timeout: 30000
-      max-lifetime: 60000
-      idle-timeout: 600000
+      minimum-idle: 50 # 启动时连接数
+      maximum-pool-size: 200 # 最大连接数
+      connection-timeout: 30000 # 创建连接等待时间
+      max-lifetime: 600000 # 活跃最长时间
+      idle-timeout: 60000 # 空闲最长时间
 
   rabbitmq:
     host: 127.0.0.1
@@ -28,13 +29,23 @@ spring:
     listener:
       simple:
         prefetch: 1
-        acknowledge-mode: auto
+        acknowledge-mode: manual
         retry:
           enabled: true
           initial-interval: 1000
           multiplier: 3 # next = last * interval
           max-attempts: 4
           stateless: true # 关闭事务: true, 开启事务: false
+
+  cloud:
+    openfeign:
+      client:
+        config:
+          default:
+            logger-level: BASIC
+      httpclient:
+        max-connections: 200
+        max-connections-per-route: 50
 
 mybatis:
   # mapper映射文件位置

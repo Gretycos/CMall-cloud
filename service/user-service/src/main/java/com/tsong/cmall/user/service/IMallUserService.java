@@ -2,6 +2,7 @@ package com.tsong.cmall.user.service;
 
 import com.tsong.cmall.user.web.params.MallUserPasswordParam;
 import com.tsong.cmall.user.web.params.MallUserUpdateParam;
+import com.tsong.cmall.user.web.vo.LoginVO;
 import com.tsong.cmall.user.web.vo.MallUserVO;
 
 public interface IMallUserService {
@@ -17,7 +18,7 @@ public interface IMallUserService {
      * @Param [loginName, passwordMD5, httpSession]
      * @Return java.lang.String
      */
-    String login(String loginName, String passwordMD5);
+    LoginVO login(String loginName, String passwordMD5);
 
     /**
      * @Description 获取用户信息

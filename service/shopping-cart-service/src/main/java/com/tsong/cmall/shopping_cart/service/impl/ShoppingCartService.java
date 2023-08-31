@@ -57,11 +57,11 @@ public class ShoppingCartService implements IShoppingCartService {
 
         // 不存在该购物车项目
         // 查找物品
-        Result goodsResult = goodsClient.getGoodsById(saveCartItemParam.getGoodsId());
+        Result<GoodsInfo> goodsResult = goodsClient.getGoodsById(saveCartItemParam.getGoodsId());
         if (goodsResult.getResultCode() != 200){
             CMallException.fail(RPC_ERROR.getResult() + goodsResult.getMessage());
         }
-        GoodsInfo goodsInfo = (GoodsInfo) goodsResult.getData();
+        GoodsInfo goodsInfo = goodsResult.getData();
         // 商品为空
         if (goodsInfo == null) {
             return ServiceResultEnum.GOODS_NOT_EXIST.getResult();
@@ -148,11 +148,13 @@ public class ShoppingCartService implements IShoppingCartService {
         if (priceTotal.compareTo(new BigDecimal(1)) < 0) {
             CMallException.fail("价格异常");
         }
-        Result couponsResult = couponClient.getCouponsForOrderConfirm(shoppingCartItemVOList, priceTotal, userId);
+
+        List<Long> shoppingCartGoodsIdList = shoppingCartItemVOList.stream().map(ShoppingCartItemVO::getGoodsId).toList();
+        Result<List<MyCouponVO>> couponsResult = couponClient.getCouponsForOrderConfirm(shoppingCartGoodsIdList, priceTotal, userId);
         if (couponsResult.getResultCode() != 200){
             CMallException.fail(RPC_ERROR.getResult() + couponsResult.getMessage());
         }
-        List<MyCouponVO> myCouponVOList = (List<MyCouponVO>) couponsResult.getData();
+        List<MyCouponVO> myCouponVOList = couponsResult.getData();
         ShoppingCartConfirmVO shoppingCartConfirmVO = new ShoppingCartConfirmVO();
         shoppingCartConfirmVO.setItemsForConfirmPage(shoppingCartItemVOList);
         shoppingCartConfirmVO.setMyCouponVOList(myCouponVOList);
@@ -200,11 +202,11 @@ public class ShoppingCartService implements IShoppingCartService {
             List<Long> goodsIds = shoppingCartItemList.stream()
                     .map(ShoppingCartItem::getGoodsId).collect(Collectors.toList());
             // 商品表
-            Result goodsListResult = goodsClient.getGoodsListByIds(goodsIds);
+            Result<List<GoodsInfo>> goodsListResult = goodsClient.getGoodsListByIds(goodsIds);
             if (goodsListResult.getResultCode() != 200){
                 CMallException.fail(RPC_ERROR.getResult() + goodsListResult.getMessage());
             }
-            List<GoodsInfo> goodsList = (List<GoodsInfo>) goodsListResult.getData();
+            List<GoodsInfo> goodsList = goodsListResult.getData();
             // id -> 商品
             Map<Long, GoodsInfo> goodsMap = new HashMap<>();
             if (!CollectionUtils.isEmpty(goodsList)) {

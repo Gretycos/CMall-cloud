@@ -5,7 +5,7 @@ package com.tsong.cmall.seckill.enums;
  * @Date 2023/8/23 19:37
  */
 public enum SeckillConfigEnum {
-    SECKILL_STOCK_RECOVER_OVERTIME_MILLISECOND(300000); // 300s
+    SECKILL_STOCK_RECOVER_OVERTIME_MILLISECOND(120000); // 120s
 
     int time; //ms
 

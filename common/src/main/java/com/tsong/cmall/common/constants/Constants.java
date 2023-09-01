@@ -73,6 +73,11 @@ public class Constants {
     public static final String SECKILL_GOODS_STOCK_KEY = REDIS_KEY_PREFIX + "seckill_goods_stock:";
 
     /**
+     * 秒杀商品加密URL
+     */
+    public static final String SECKILL_SECRET_URL_KEY = REDIS_KEY_PREFIX + "seckill_secret_url:";
+
+    /**
      * 秒杀商品缓存
      */
     public static final String SECKILL_KEY = REDIS_KEY_PREFIX + "seckill:";

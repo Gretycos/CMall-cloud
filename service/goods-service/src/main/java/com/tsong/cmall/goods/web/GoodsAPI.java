@@ -29,8 +29,8 @@ import java.util.Map;
 @RestController
 @Tag(name = "goods", description = "1-4.CMall商品相关接口")
 @RequestMapping("/api/goods")
-public class GoodsInfoAPI {
-    private static final Logger logger = LoggerFactory.getLogger(GoodsInfoAPI.class);
+public class GoodsAPI {
+    private static final Logger logger = LoggerFactory.getLogger(GoodsAPI.class);
 
     @Autowired
     private IGoodsService goodsService;
@@ -39,33 +39,32 @@ public class GoodsInfoAPI {
     @Operation(summary = "商品搜索接口", description = "根据关键字和分类id进行搜索")
     public Result goodsSearch(@RequestParam(required = false) @Parameter(name = "搜索关键字") String keyword,
                               @RequestParam(required = false) @Parameter(name = "分类id") Long goodsCategoryId,
-                              @RequestParam(required = false) @Parameter(name = "orderBy") String orderBy,
+                              @RequestParam(required = false) @Parameter(name = "排序字段") String orderBy,
+                              @RequestParam(required = false) @Parameter(name = "排序方式") Integer order,
                               @RequestParam(required = false) @Parameter(name = "页码") Integer pageNumber,
                               @RequestParam Long userId) {
 
-        logger.info("goodsSearch, keyword={},goodsCategoryId={},orderBy={},pageNumber={},userId={}",
+        logger.debug("goodsSearch, keyword={},goodsCategoryId={},orderBy={},pageNumber={},userId={}",
                 keyword, goodsCategoryId, orderBy, pageNumber, userId);
 
-        Map<String, Object> params = new HashMap<>(8);
+        Map<String, Object> params = new HashMap<>();
         //两个搜索参数都为空，直接返回异常
-        if (goodsCategoryId == null && !StringUtils.hasText(keyword)) {
-            CMallException.fail("非法的搜索参数");
+        if (goodsCategoryId == null || !StringUtils.hasText(keyword)) {
+            CMallException.fail(ServiceResultEnum.PARAM_ERROR.getResult());
         }
         if (pageNumber == null || pageNumber < 1) {
             pageNumber = 1;
         }
+        if (order == null || order < 0){
+            order = 0;
+        }
         params.put("goodsCategoryId", goodsCategoryId);
+        params.put("goodsSellStatus", Constants.SALE_STATUS_UP);
         params.put("page", pageNumber);
         params.put("limit", Constants.GOODS_SEARCH_PAGE_LIMIT);
-        //对keyword做过滤 去掉空格
-        if (StringUtils.hasText(keyword)) {
-            params.put("keyword", keyword);
-        }
-        if (StringUtils.hasText(orderBy)) {
-            params.put("orderBy", orderBy);
-        }
-        //搜索上架状态下的商品
-        params.put("goodsSellStatus", Constants.SALE_STATUS_UP);
+        params.put("keyword", keyword);
+        params.put("order", order > 0 ? "ASC" : "DESC");
+        params.put("orderBy", StringUtils.hasText(orderBy) ? orderBy : "sellingPrice");
         //封装商品数据
         PageQueryUtil pageUtil = new PageQueryUtil(params);
         return ResultGenerator.genSuccessResult(goodsService.searchGoodsInfo(pageUtil));
@@ -75,7 +74,7 @@ public class GoodsInfoAPI {
     @Operation(summary = "商品详情接口", description = "传参为商品id")
     public Result goodsDetail(@Parameter(name = "商品id") @PathVariable("goodsId") Long goodsId,
                               @RequestParam Long userId) {
-        logger.info("goodsDetail, goodsId={},userId={}", goodsId, userId);
+        logger.debug("goodsDetail, goodsId={},userId={}", goodsId, userId);
         if (goodsId < 1) {
             return ResultGenerator.genFailResult("参数异常");
         }
@@ -87,5 +86,15 @@ public class GoodsInfoAPI {
         BeanUtil.copyProperties(goods, goodsDetailVO);
         goodsDetailVO.setGoodsCarouselList(goods.getGoodsCarousel().split(","));
         return ResultGenerator.genSuccessResult(goodsDetailVO);
+    }
+
+    @GetMapping("/suggestion")
+    @Operation(summary = "输入框提示", description = "传入关键词")
+    public Result goodsSuggestion(@RequestParam String key,
+                                  @RequestParam Long userId) {
+        if (!StringUtils.hasText(key)){
+            CMallException.fail(ServiceResultEnum.PARAM_ERROR.getResult());
+        }
+        return ResultGenerator.genSuccessResult(goodsService.getSuggestions(key));
     }
 }

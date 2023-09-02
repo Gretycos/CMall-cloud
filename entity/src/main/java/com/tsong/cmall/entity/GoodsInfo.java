@@ -40,6 +40,8 @@ public class GoodsInfo {
 
     private Byte goodsSaleStatus;
 
+    private Boolean isAD;
+
     private Long createUser;
 
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")

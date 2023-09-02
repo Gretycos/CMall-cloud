@@ -1,6 +1,7 @@
 package com.tsong.cmall.common.util;
 
 import lombok.Data;
+import org.springframework.util.StringUtils;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -11,7 +12,7 @@ public class PageQueryUtil extends LinkedHashMap<String, Object> {
     private int page;
     // 每页条数
     private int limit;
-    private String sidx; // 可能是排序的顺序
+    private String orderBy; // 排序的字段
     private String order;
 
     public PageQueryUtil(Map<String, Object> params) {
@@ -20,13 +21,11 @@ public class PageQueryUtil extends LinkedHashMap<String, Object> {
         this.page = Integer.parseInt(params.get("page").toString());
         this.limit = Integer.parseInt(params.get("limit").toString());
         this.put("start", (page - 1) * limit);
-        this.put("page", page);
-        this.put("limit", limit);
-        this.sidx = (String) params.get("sidx");
+        this.orderBy = (String) params.get("orderBy");
         this.order = (String) params.get("order");
-        if (sidx != null && !sidx.isBlank() && !sidx.isEmpty()) {
-            this.put("sortField", this.sidx.replaceAll("[A-Z]", "_$0").toLowerCase());
-            this.put("order", order);
+        if (StringUtils.hasText(this.orderBy)) {
+            // 正则把驼峰转下划线
+            this.put("sortField", this.orderBy.replaceAll("[A-Z]", "_$0").toLowerCase());
         }
     }
 }

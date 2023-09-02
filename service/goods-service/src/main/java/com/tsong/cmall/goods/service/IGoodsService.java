@@ -24,6 +24,13 @@ public interface IGoodsService {
      */
     PageResult searchGoodsInfo(PageQueryUtil pageUtil);
 
+    /**
+     * @Description 输入框补全
+     * @Param [prefix]
+     * @Return java.util.List<java.lang.String>
+     */
+    List<String> getSuggestions(String prefix);
+
     List<GoodsInfo> getGoodsByIds(List<Long> ids);
 
     List<GoodsCategory> getGoodsCategoryByIds(List<Long> ids);

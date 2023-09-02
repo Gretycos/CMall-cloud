@@ -15,7 +15,7 @@ public interface GoodsInfoMapper {
 
     List<GoodsInfo> selectByPrimaryKeys(List<Long> goodsIds);
 
-    List<GoodsInfo> selectGoodsListBySearch(PageQueryUtil pageUtil);
+    List<GoodsInfo> selectAll();
 
     int recoverStockNum(List<StockNumDTO> stockNumDTOS);
 

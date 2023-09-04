@@ -39,11 +39,17 @@
       )
   </select>
 
-  <insert id="addStock">
+  <update id="decreaseStock" parameterType="java.lang.Long">
+    update tb_seckill
+    set seckill_num = seckill_num - 1
+    where seckill_id = #{seckillId} and seckill_num > 0
+  </update>
+
+  <update id="addStock" parameterType="java.lang.Long">
     update tb_seckill
     set seckill_num = seckill_num + 1
     where seckill_id = #{seckillId}
-  </insert>
+  </update>
   
   <update id="putOffBatch">
     update tb_seckill

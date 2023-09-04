@@ -8,10 +8,9 @@ import org.springframework.context.annotation.Configuration;
 
 import static com.tsong.cmall.common.constants.MQExchangeCons.CMALL_DIRECT;
 import static com.tsong.cmall.common.constants.MQExchangeCons.CMALL_DIRECT_DL;
-import static com.tsong.cmall.common.constants.MQQueueCons.SECKILL_STOCK_RECOVER_QUEUE;
-import static com.tsong.cmall.common.constants.MQQueueCons.SECKILL_STOCK_RECOVER_QUEUE_DL;
-import static com.tsong.cmall.common.constants.MQRoutingKeyCons.SECKILL_STOCK_RECOVER;
-import static com.tsong.cmall.common.constants.MQRoutingKeyCons.SECKILL_STOCK_RECOVER_DL;
+import static com.tsong.cmall.common.constants.MQQueueCons.*;
+import static com.tsong.cmall.common.constants.MQRoutingKeyCons.*;
+import static com.tsong.cmall.seckill.enums.SeckillConfigEnum.SECKILL_STOCK_DECREASE_OVERTIME_MILLISECOND;
 import static com.tsong.cmall.seckill.enums.SeckillConfigEnum.SECKILL_STOCK_RECOVER_OVERTIME_MILLISECOND;
 
 /**
@@ -37,7 +36,17 @@ public class MQConfig {
     }
 
     @Bean
-    public Queue ttlQueue() { // 秒杀库存恢复ttl队列
+    public Queue stockDecreaseTtlQueue() { // 秒杀库存减少ttl队列
+        return QueueBuilder
+                .durable(SECKILL_STOCK_DECREASE_QUEUE) // ttl队列名
+                .ttl(SECKILL_STOCK_DECREASE_OVERTIME_MILLISECOND.getTime()) // ms
+                .deadLetterExchange(CMALL_DIRECT_DL)
+                .deadLetterRoutingKey(SECKILL_STOCK_DECREASE_DL)
+                .build();
+    }
+
+    @Bean
+    public Queue stockRecoverTtlQueue() { // 秒杀库存恢复ttl队列
         return QueueBuilder
                 .durable(SECKILL_STOCK_RECOVER_QUEUE) // ttl队列名
                 .ttl(SECKILL_STOCK_RECOVER_OVERTIME_MILLISECOND.getTime()) // ms
@@ -46,17 +55,33 @@ public class MQConfig {
                 .build();
     }
 
-    @Bean Queue dlQueue() {
+    @Bean Queue stockDecreaseDlQueue() {
+        return new Queue(SECKILL_STOCK_DECREASE_QUEUE_DL);
+    }
+
+    @Bean Queue stockRecoverDlQueue() {
         return new Queue(SECKILL_STOCK_RECOVER_QUEUE_DL);
     }
 
     @Bean
-    public Binding ttlBinding() {
-        return BindingBuilder.bind(ttlQueue()).to(directExchange()).with(SECKILL_STOCK_RECOVER);
+    public Binding stockDecreaseTtlBinding() {
+        return BindingBuilder.bind(stockDecreaseTtlQueue()).to(directExchange()).with(SECKILL_STOCK_DECREASE);
     }
 
     @Bean
-    public Binding dlBinding() {
-        return BindingBuilder.bind(dlQueue()).to(dlDirectExchange()).with(SECKILL_STOCK_RECOVER_DL);
+    public Binding stockDecreaseDlBinding() {
+        return BindingBuilder.bind(stockDecreaseDlQueue()).to(dlDirectExchange()).with(SECKILL_STOCK_DECREASE_DL);
     }
+
+    @Bean
+    public Binding stockRecoverTtlBinding() {
+        return BindingBuilder.bind(stockRecoverTtlQueue()).to(directExchange()).with(SECKILL_STOCK_RECOVER);
+    }
+
+    @Bean
+    public Binding stockRecoverDlBinding() {
+        return BindingBuilder.bind(stockRecoverDlQueue()).to(dlDirectExchange()).with(SECKILL_STOCK_RECOVER_DL);
+    }
+
+
 }

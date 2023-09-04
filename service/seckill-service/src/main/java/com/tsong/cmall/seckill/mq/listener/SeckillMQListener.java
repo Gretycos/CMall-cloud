@@ -10,9 +10,10 @@ import org.springframework.messaging.handler.annotation.Header;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
-import java.util.Map;
 
+import static com.tsong.cmall.common.constants.MQQueueCons.SECKILL_STOCK_DECREASE_QUEUE_DL;
 import static com.tsong.cmall.common.constants.MQQueueCons.SECKILL_STOCK_RECOVER_QUEUE_DL;
+
 
 /**
  * @Author Tsong
@@ -30,6 +31,14 @@ public class SeckillMQListener {
         Long userId = seckillStockMsg.getUserId();
         Long seckillId = seckillStockMsg.getSeckillId();
         seckillService.stockRecover(userId, seckillId);
+        channel.basicAck(deliveryTag, false);
+    }
+
+    @RabbitListener(queues = SECKILL_STOCK_DECREASE_QUEUE_DL)
+    public void handleSeckillStockDecrease(Long seckillId,
+                                          Channel channel,
+                                          @Header(AmqpHeaders.DELIVERY_TAG) long deliveryTag) throws IOException {
+        seckillService.stockDecrease(seckillId);
         channel.basicAck(deliveryTag, false);
     }
 }

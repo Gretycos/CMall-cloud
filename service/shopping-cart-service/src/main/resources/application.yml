@@ -1,5 +1,9 @@
 server:
   port: 8085
+  tomcat:
+    # idle-timeout 不可设置 默认是60s
+    connection-timeout: 20000 # 请求握手超时时间
+    keep-alive-timeout: 60000 # keep-alive请求断开时间
 
 spring:
   datasource:
@@ -21,8 +25,11 @@ spring:
           default:
             logger-level: BASIC
       httpclient:
+        hc5:
+          enabled: true # 开启httpclient5
         max-connections: 200
         max-connections-per-route: 50
+        time-to-live: 55 # 连接生存时间
 
 mybatis:
   # mapper映射文件位置

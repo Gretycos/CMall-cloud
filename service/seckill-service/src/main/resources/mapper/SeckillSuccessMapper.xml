@@ -27,4 +27,9 @@
     where sec_id = #{secId,jdbcType=BIGINT}
   </delete>
 
+  <insert id="insertSuccessRecord" parameterType="com.tsong.cmall.seckill.mapper.dto.SeckillSuccessDTO">
+    insert into tb_seckill_success (seckill_id, user_id, create_time)
+    values (#{seckillId}, #{userId}, #{createTime})
+  </insert>
+
 </mapper>

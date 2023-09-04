@@ -1,5 +1,9 @@
 server:
   port: 8083
+  tomcat:
+    # idle-timeout 不可设置 默认是60s
+    connection-timeout: 20000 # 请求握手超时时间
+    keep-alive-timeout: 60000 # keep-alive请求断开时间
 
 spring:
   datasource:
@@ -8,11 +12,12 @@ spring:
     username: root
     password: 123456
     hikari:
-      minimum-idle: 10 # 启动时连接数
+      minimum-idle: 10 # 启动时连接数 不设置时与maximum-pool-size相同
       maximum-pool-size: 50
       connection-timeout: 30000 # 创建连接等待时间
-      max-lifetime: 600000 # 活跃最长时间
-      idle-timeout: 60000 # 空闲最长时间
+      max-lifetime: 600000 # 活跃最长时间，比数据库允许最长时间要短
+      idle-timeout: 90000 # 空闲最长时间，超过这个时间并且比min值大，会被踢出线程池
+      keepalive-time: 60000 # 心跳时间，防止跟数据库断开连接
 
   rabbitmq:
     host: 127.0.0.1

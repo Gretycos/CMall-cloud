@@ -8,7 +8,9 @@ spring:
       server-addr: 127.0.0.1:8848 # nacos地址
       config:
         file-extension: yaml # 文件后缀名
-#      discovery:
+      discovery:
+        ip-type: IPv4
+    #      discovery:
 #        cluster-name: GZ # 集群名
     loadbalancer:
       nacos:

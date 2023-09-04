@@ -14,13 +14,16 @@ import com.tsong.cmall.msg.CreateSeckillOrderMsg;
 import com.tsong.cmall.seckill.enums.SeckillStatusEnum;
 import com.tsong.cmall.seckill.mapper.SeckillMapper;
 import com.tsong.cmall.seckill.mapper.SeckillSuccessMapper;
+import com.tsong.cmall.seckill.mapper.dto.SeckillSuccessDTO;
 import com.tsong.cmall.seckill.redis.RedisCache;
 import com.tsong.cmall.seckill.service.ISeckillService;
 import com.tsong.cmall.seckill.web.vo.SeckillGoodsVO;
 import com.tsong.cmall.seckill.web.vo.SeckillSuccessVO;
 import com.tsong.cmall.seckill.web.vo.UrlExposerVO;
 import com.tsong.feign.clients.goods.GoodsClient;
-import org.apache.commons.collections4.MapUtils;
+import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -30,6 +33,7 @@ import java.util.concurrent.TimeUnit;
 
 import static com.tsong.cmall.common.constants.MQExchangeCons.CMALL_DIRECT;
 import static com.tsong.cmall.common.constants.MQRoutingKeyCons.ORDER_SECKILL_CREATE;
+import static com.tsong.cmall.common.constants.MQRoutingKeyCons.SECKILL_STOCK_DECREASE;
 import static com.tsong.cmall.common.enums.ServiceResultEnum.RPC_ERROR;
 import static com.tsong.cmall.seckill.enums.SeckillConfigEnum.SECKILL_STOCK_RECOVER_OVERTIME_MILLISECOND;
 
@@ -39,10 +43,13 @@ import static com.tsong.cmall.seckill.enums.SeckillConfigEnum.SECKILL_STOCK_RECO
  * @Date 2023/3/25 13:42
  */
 @Service
+@Slf4j
 public class SeckillService implements ISeckillService {
-
     // 使用令牌桶RateLimiter 限流
-    private static final RateLimiter rateLimiter = RateLimiter.create(100);
+    // 初始化每秒能够通过的请求数
+    private static final RateLimiter rateLimiter = RateLimiter.create(500);
+
+    private static final Logger logger = LoggerFactory.getLogger(SeckillService.class);
 
     @Autowired
     private SeckillMapper seckillMapper;
@@ -69,6 +76,8 @@ public class SeckillService implements ISeckillService {
     @Override
     public UrlExposerVO exposeUrl(Long seckillId) {
         // 先找redis
+        // 最好预热的时候redis中有，否则所有线程涌入后方
+        // 这里如果用了分布式锁，性能会大幅下降，因为第一个拿到锁的线程做了预热之后，后面的线程其实不需要去获得锁
         UrlExposerVO urlExposerVO = redisCache.getCacheObject(Constants.SECKILL_SECRET_URL_KEY + seckillId);
         if (urlExposerVO != null) {
             return urlExposerVO;
@@ -86,10 +95,10 @@ public class SeckillService implements ISeckillService {
         if (nowTime.getTime() < startTime.getTime() || nowTime.getTime() > endTime.getTime()) {
             urlExposerVO = new UrlExposerVO(SeckillStatusEnum.NOT_START, seckillId, nowTime.getTime(), startTime.getTime(), endTime.getTime());
             if (nowTime.getTime() < startTime.getTime()){
-                redisCache.setCacheObject(Constants.SECKILL_SECRET_URL_KEY + seckillId, urlExposerVO,
+                redisCache.setNXCacheObject(Constants.SECKILL_SECRET_URL_KEY + seckillId, urlExposerVO,
                         startTime.getTime() - nowTime.getTime(), TimeUnit.MILLISECONDS);
             } else {
-                redisCache.setCacheObject(Constants.SECKILL_SECRET_URL_KEY + seckillId, urlExposerVO);
+                redisCache.setNXCacheObject(Constants.SECKILL_SECRET_URL_KEY + seckillId, urlExposerVO);
             }
             return urlExposerVO;
         }
@@ -98,15 +107,15 @@ public class SeckillService implements ISeckillService {
         if (stock == null || stock <= 0) {
             urlExposerVO = new UrlExposerVO(SeckillStatusEnum.STARTED_SHORTAGE_STOCK, seckillId);
             // 库存5分钟刷新一次
-            redisCache.setCacheObject(Constants.SECKILL_SECRET_URL_KEY + seckillId, urlExposerVO,
-                    SECKILL_STOCK_RECOVER_OVERTIME_MILLISECOND.getTime(), TimeUnit.MILLISECONDS);
+            redisCache.setNXCacheObject(Constants.SECKILL_SECRET_URL_KEY + seckillId, urlExposerVO,
+                    (long) SECKILL_STOCK_RECOVER_OVERTIME_MILLISECOND.getTime(), TimeUnit.MILLISECONDS);
             return urlExposerVO;
         }
         // 加密
         String md5 = MD5Util.MD5Encode(seckillId.toString(), Constants.UTF_ENCODING);
         urlExposerVO = new UrlExposerVO(SeckillStatusEnum.START, md5, seckillId);
         // 秒杀事件加密
-        redisCache.setCacheObject(Constants.SECKILL_SECRET_URL_KEY + seckillId, urlExposerVO,
+        redisCache.setNXCacheObject(Constants.SECKILL_SECRET_URL_KEY + seckillId, urlExposerVO,
                 endTime.getTime() - nowTime.getTime(), TimeUnit.MILLISECONDS);
         return urlExposerVO;
     }
@@ -114,9 +123,9 @@ public class SeckillService implements ISeckillService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public SeckillSuccessVO executeSeckill(Long seckillId, Long userId, Long addressId) {
-        // 判断能否在100毫秒内得到令牌，如果不能则立即返回false，不会阻塞程序
-        if (!rateLimiter.tryAcquire(100, TimeUnit.MILLISECONDS)) {
-            CMallException.fail("秒杀失败");
+        // 判断能否在10毫秒内得到令牌，如果不能则立即返回false，不会阻塞程序
+        if (!rateLimiter.tryAcquire(10, TimeUnit.MILLISECONDS)) {
+            CMallException.fail("当前活动太火爆啦");
         }
         // 判断用户是否购买过秒杀商品
         if (redisCache.containsCacheSet(Constants.SECKILL_SUCCESS_USER_ID + seckillId, userId)) {
@@ -134,7 +143,7 @@ public class SeckillService implements ISeckillService {
                 CMallException.fail("您已经购买过秒杀商品，请勿重复购买");
             }else{
                 // 移除加密url
-                redisCache.deleteObject(Constants.SECKILL_SECRET_URL_KEY + seckillId);
+                redisCache.luaDeleteUrlVO(Constants.SECKILL_SECRET_URL_KEY + seckillId);
                 CMallException.fail("秒杀商品已售空");
             }
         }
@@ -160,24 +169,43 @@ public class SeckillService implements ISeckillService {
             CMallException.fail("秒杀已结束");
         }
 
-        Map<String, Object> map = new HashMap<>(8);
-        map.put("seckillId", seckillId);
-        map.put("userId", userId);
-        map.put("killTime", new Date());
-        map.put("result", null);
-        // 执行存储过程，result被赋值
-        try {
-            seckillMapper.killByProcedure(map); // 减库存操作
-        } catch (Exception e) {
-            e.printStackTrace();
-            CMallException.fail("服务器异常");
-        }
-        // 获取result -2sql执行失败 -1未插入数据 0未更新数据 1sql执行成功
-        // map.get("result");
-        int result = MapUtils.getInteger(map, "result", -2);
-        if (result != 1) {
+//        Map<String, Object> map = new HashMap<>(8);
+//        map.put("seckillId", seckillId);
+//        map.put("userId", userId);
+//        map.put("killTime", new Date());
+//        map.put("result", null);
+        SeckillSuccessDTO seckillSuccessDTO = new SeckillSuccessDTO();
+        seckillSuccessDTO.setSeckillId(seckillId);
+        seckillSuccessDTO.setUserId(userId);
+        seckillSuccessDTO.setCreateTime(new Date());
+
+//        long start = System.currentTimeMillis();
+        // 减库存，消息队列
+        messageHandler.sendMessage(CMALL_DIRECT, SECKILL_STOCK_DECREASE, seckillId);
+        // 记录秒杀成功
+        if(seckillSuccessMapper.insertSuccessRecord(seckillSuccessDTO) <= 0){
             CMallException.fail("很遗憾！未抢购到秒杀商品");
         }
+//        logger.info("insertSuccessRecord: " + (System.currentTimeMillis() - start));
+//        start = System.currentTimeMillis();
+//        if (!seckillMapper.decreaseStock(seckillId)) {
+//            CMallException.fail("很遗憾！未抢购到秒杀商品");
+//        }
+//        logger.info("seckill: " + (System.currentTimeMillis() - start));
+
+//        // 执行存储过程，result被赋值
+//        try {
+//            seckillMapper.killByProcedure(map); // 减库存操作
+//        } catch (Exception e) {
+//            e.printStackTrace();
+//            CMallException.fail("服务器异常");
+//        }
+        // 获取result -2sql执行失败 -1未插入数据 0未更新数据 1sql执行成功
+        // map.get("result");
+//        int result = MapUtils.getInteger(map, "result", -2);
+//        if (result != 1) {
+//            CMallException.fail("很遗憾！未抢购到秒杀商品");
+//        }
         // result == 1 说明秒杀成功，并且秒杀成功表插入了一条该用户秒杀成功的数据
 
         // 获得该用户的秒杀成功
@@ -279,6 +307,13 @@ public class SeckillService implements ISeckillService {
         // 放入redis
         redisCache.setCacheObject(Constants.SECKILL_GOODS_LIST, seckillGoodsVOList, 60 * 60 * 2, TimeUnit.SECONDS);
         return seckillGoodsVOList;
+    }
+
+    @Override
+    public void stockDecrease(Long seckillId) {
+        if(!seckillMapper.decreaseStock(seckillId)){
+            CMallException.fail("减少库存失败");
+        }
     }
 
     @Override

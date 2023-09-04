@@ -39,34 +39,27 @@ public class RedisCache {
      * @return 递减后返回值
      */
     public Long luaDecrement(final String stockKey, final String recordKey, final Long userId) {
-        RedisScript<Long> redisScript = new DefaultRedisScript<>(buildLuaDecrScript(), Long.class);
-        // execute(script, KEYS, ARGV)
-        Number execute = (Number) redisTemplate.execute(redisScript, List.of(stockKey, recordKey), userId);
-        if (execute == null) {
-            return -1L;
-        }
-        return execute.longValue();
-    }
-
-    /**
-     * lua原子自减脚本
-     */
-    private String buildLuaDecrScript() {
         // 大于0才自减
-        return """
-                local c
-                c = redis.call('get',KEYS[1])
+        String lua = """
+                local c = redis.call('get',KEYS[1])
                 if c and tonumber(c) == 0 then
                 return -1;
                 end
-                local record
-                record = redis.call('sismember',KEYS[2],ARGV[1])
+                local record = redis.call('sismember',KEYS[2],ARGV[1])
                 if record == 1 then
                 return -2;
                 end
                 c = redis.call('decr',KEYS[1])
                 redis.call('sadd',KEYS[2],ARGV[1])
                 return c;""";
+
+        RedisScript<Long> redisScript = new DefaultRedisScript<>(lua, Long.class);
+        // execute(script, KEYS, ARGV)
+        Number execute = (Number) redisTemplate.execute(redisScript, List.of(stockKey, recordKey), userId);
+        if (execute == null) {
+            return -1L;
+        }
+        return execute.longValue();
     }
 
     /**
@@ -77,6 +70,10 @@ public class RedisCache {
      */
     public <T> void setCacheObject(final String key, final T value) {
         redisTemplate.opsForValue().set(key, value);
+    }
+
+    public <T> void setNXCacheObject(final String key, final T value) {
+        redisTemplate.opsForValue().setIfAbsent(key, value);
     }
 
     /**
@@ -93,6 +90,10 @@ public class RedisCache {
 
     public <T> void setCacheObject(final String key, final T value, final Long timeout, final TimeUnit timeUnit) {
         redisTemplate.opsForValue().set(key, value, timeout, timeUnit);
+    }
+
+    public <T> void setNXCacheObject(final String key, final T value, final Long timeout, final TimeUnit timeUnit) {
+        redisTemplate.opsForValue().setIfAbsent(key, value, timeout, timeUnit);
     }
 
 
@@ -115,6 +116,27 @@ public class RedisCache {
      */
     public boolean deleteObject(final String key) {
         return redisTemplate.delete(key);
+    }
+
+    public Long luaDeleteUrlVO(final String key) {
+        String lua = """
+                local urlJSON = redis.call('get',KEYS[1])
+                if urlJSON then
+                    local url = cjson.decode(urlJSON)
+                    if url.seckillStatusEnum == 'START' then 
+                        redis.call('del',KEYS[1])
+                        return 1
+                    end
+                end
+                return 0
+                """;
+        RedisScript<Long> redisScript = new DefaultRedisScript<>(lua, Long.class);
+        // execute(script, KEYS, ARGV)
+        Number execute = (Number) redisTemplate.execute(redisScript, List.of(key));
+        if (execute == null) {
+            return 0L;
+        }
+        return execute.longValue();
     }
 
     /**

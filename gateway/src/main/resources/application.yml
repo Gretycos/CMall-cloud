@@ -1,5 +1,8 @@
 server:
   port: 10010
+  netty:
+    idle-timeout: 60000 # 空闲时间
+    connection-timeout: 30000 # 握手超时时间
 
 spring:
   main:
@@ -22,7 +25,13 @@ spring:
     nacos:
       discovery:
         server-addr: 127.0.0.1:8848
+        ip-type: IPv4
+
     gateway:
+      httpclient:
+        pool:
+          max-idle-time: 30000
+        response-timeout: 15000
       routes:
         - id: user-service # 路由标识，唯一
           uri: lb://user-service # 路由目标地址

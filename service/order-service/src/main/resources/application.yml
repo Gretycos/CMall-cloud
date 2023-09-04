@@ -1,5 +1,8 @@
 server:
   port: 8084
+  tomcat:
+    connection-timeout: 20000 # 请求握手超时时间
+    keep-alive-timeout: 60000 # keep-alive请求断开时间
 
 spring:
   datasource:
@@ -8,11 +11,12 @@ spring:
     username: root
     password: 123456
     hikari:
-      minimum-idle: 50 # 启动时连接数
-      maximum-pool-size: 200 # 最大连接数
+#      minimum-idle: 10 # 启动时连接数 不设置时与maximum-pool-size相同
+      maximum-pool-size: 50
       connection-timeout: 30000 # 创建连接等待时间
-      max-lifetime: 600000 # 活跃最长时间
-      idle-timeout: 60000 # 空闲最长时间
+      max-lifetime: 600000 # 活跃最长时间，比数据库允许最长时间要短
+      idle-timeout: 90000 # 空闲最长时间，超过这个时间并且比min值大，会被踢出线程池
+      keepalive-time: 60000 # 心跳时间，防止跟数据库断开连接
 
   rabbitmq:
     host: 127.0.0.1
@@ -41,11 +45,15 @@ spring:
     openfeign:
       client:
         config:
-          default:
+          default: # 全局
             logger-level: BASIC
       httpclient:
+        hc5:
+          enabled: true # 开启httpclient5
         max-connections: 200
         max-connections-per-route: 50
+        time-to-live: 55 # 连接生存时间
+
 
 mybatis:
   # mapper映射文件位置

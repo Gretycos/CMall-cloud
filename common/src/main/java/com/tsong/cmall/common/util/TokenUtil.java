@@ -2,6 +2,7 @@ package com.tsong.cmall.common.util;
 
 import java.math.BigInteger;
 import java.security.MessageDigest;
+import java.util.Random;
 
 /**
  * @Author Tsong
@@ -16,10 +17,10 @@ public class TokenUtil {
             MessageDigest md = MessageDigest.getInstance("MD5");
             md.update(src.getBytes());
             String result = new BigInteger(1, md.digest()).toString(16);
-            if (result.length() == 31) {
-                result = result + "-";
+            Random random = new Random();
+            while (result.length() < 32) {
+                result = result + random.nextInt(10);
             }
-            System.out.println(result);
             return result;
         } catch (Exception e) {
             return null;

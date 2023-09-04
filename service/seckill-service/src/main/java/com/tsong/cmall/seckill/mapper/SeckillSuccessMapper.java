@@ -1,6 +1,7 @@
 package com.tsong.cmall.seckill.mapper;
 
 import com.tsong.cmall.entity.SeckillSuccess;
+import com.tsong.cmall.seckill.mapper.dto.SeckillSuccessDTO;
 
 /**
  * @Author: Tsong
@@ -10,4 +11,6 @@ public interface SeckillSuccessMapper {
     int deleteByPrimaryKey(Long secId);
 
     SeckillSuccess getSeckillSuccessByUserIdAndSeckillId(Long userId, Long seckillId);
+
+    int insertSuccessRecord(SeckillSuccessDTO seckillSuccessDTO);
 }

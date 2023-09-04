@@ -49,7 +49,7 @@ public class GoodsAPI {
 
         Map<String, Object> params = new HashMap<>();
         //两个搜索参数都为空，直接返回异常
-        if (goodsCategoryId == null || !StringUtils.hasText(keyword)) {
+        if (goodsCategoryId == null && !StringUtils.hasText(keyword)) {
             CMallException.fail(ServiceResultEnum.PARAM_ERROR.getResult());
         }
         if (pageNumber == null || pageNumber < 1) {
@@ -63,7 +63,7 @@ public class GoodsAPI {
         params.put("page", pageNumber);
         params.put("limit", Constants.GOODS_SEARCH_PAGE_LIMIT);
         params.put("keyword", keyword);
-        params.put("order", order > 0 ? "ASC" : "DESC");
+        params.put("order", order == 0 ? "ASC" : "DESC");
         params.put("orderBy", StringUtils.hasText(orderBy) ? orderBy : "sellingPrice");
         //封装商品数据
         PageQueryUtil pageUtil = new PageQueryUtil(params);

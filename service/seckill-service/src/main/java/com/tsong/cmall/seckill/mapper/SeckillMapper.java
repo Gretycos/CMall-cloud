@@ -3,6 +3,7 @@ package com.tsong.cmall.seckill.mapper;
 import com.tsong.cmall.entity.Seckill;
 import org.apache.ibatis.annotations.Param;
 
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
@@ -16,6 +17,8 @@ public interface SeckillMapper {
     List<Seckill> getHomePageSeckillList();
 
     void killByProcedure(Map<String, Object> map);
+
+    boolean decreaseStock(Long seckillId);
 
     boolean addStock(Long seckillId);
 

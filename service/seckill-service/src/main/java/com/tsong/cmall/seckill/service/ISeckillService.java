@@ -18,5 +18,7 @@ public interface ISeckillService {
 
     List<SeckillGoodsVO> getSeckillGoodsList();
 
+    void stockDecrease(Long seckillId);
+
     void stockRecover(Long userId, Long seckillId);
 }

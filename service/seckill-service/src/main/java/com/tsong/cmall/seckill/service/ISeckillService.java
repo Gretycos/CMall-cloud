@@ -21,4 +21,6 @@ public interface ISeckillService {
     void stockDecrease(Long seckillId);
 
     void stockRecover(Long userId, Long seckillId);
+
+    void expireByIds(List<Long> seckillIds);
 }

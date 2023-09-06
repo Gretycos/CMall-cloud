@@ -55,6 +55,11 @@ public class MQConfig {
                 .build();
     }
 
+    @Bean
+    public Queue seckillExpireQueue(){
+        return new Queue(SECKILL_EXPIRE_QUEUE);
+    }
+
     @Bean Queue stockDecreaseDlQueue() {
         return new Queue(SECKILL_STOCK_DECREASE_QUEUE_DL);
     }
@@ -83,5 +88,8 @@ public class MQConfig {
         return BindingBuilder.bind(stockRecoverDlQueue()).to(dlDirectExchange()).with(SECKILL_STOCK_RECOVER_DL);
     }
 
-
+    @Bean
+    public Binding seckillExpireBinding() {
+        return BindingBuilder.bind(seckillExpireQueue()).to(directExchange()).with(SECKILL_EXPIRE);
+    }
 }

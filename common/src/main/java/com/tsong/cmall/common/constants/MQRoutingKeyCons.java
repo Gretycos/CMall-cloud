@@ -14,6 +14,7 @@ public class MQRoutingKeyCons {
     public static final String ORDER_SECKILL_CREATE = "order.seckill.create";
 
 
+    public static final String SECKILL_EXPIRE = "seckill.expire";
     public static final String SECKILL_STOCK_DECREASE = "seckill.stock.decrease";
     public static final String SECKILL_STOCK_DECREASE_DL = "seckill.stock.decrease.dl";
     public static final String SECKILL_STOCK_RECOVER = "seckill.stock.recover";

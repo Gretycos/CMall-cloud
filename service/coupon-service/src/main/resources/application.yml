@@ -1,5 +1,8 @@
 server:
   port: 8082
+  compression:
+    enabled: true
+    mime-types: application/json
   tomcat:
     connection-timeout: 20000 # 请求握手超时时间
     keep-alive-timeout: 60000 # keep-alive请求断开时间
@@ -20,6 +23,12 @@ spring:
 
   cloud:
     openfeign:
+      compression:
+        request:
+          enabled: true
+          mime-types: application/json
+        response:
+          enabled: true
       client:
         config:
           default:

@@ -32,8 +32,7 @@ import java.util.*;
 import java.util.concurrent.TimeUnit;
 
 import static com.tsong.cmall.common.constants.MQExchangeCons.CMALL_DIRECT;
-import static com.tsong.cmall.common.constants.MQRoutingKeyCons.ORDER_SECKILL_CREATE;
-import static com.tsong.cmall.common.constants.MQRoutingKeyCons.SECKILL_STOCK_DECREASE;
+import static com.tsong.cmall.common.constants.MQRoutingKeyCons.*;
 import static com.tsong.cmall.common.enums.ServiceResultEnum.RPC_ERROR;
 import static com.tsong.cmall.seckill.enums.SeckillConfigEnum.SECKILL_STOCK_RECOVER_OVERTIME_MILLISECOND;
 
@@ -77,7 +76,6 @@ public class SeckillService implements ISeckillService {
     public UrlExposerVO exposeUrl(Long seckillId) {
         // 先找redis
         // 最好预热的时候redis中有，否则所有线程涌入后方
-        // 这里如果用了分布式锁，性能会大幅下降，因为第一个拿到锁的线程做了预热之后，后面的线程其实不需要去获得锁
         UrlExposerVO urlExposerVO = redisCache.getCacheObject(Constants.SECKILL_SECRET_URL_KEY + seckillId);
         if (urlExposerVO != null) {
             return urlExposerVO;
@@ -155,7 +153,7 @@ public class SeckillService implements ISeckillService {
         // 如果redis中没有，则从mysql中获取，存入redis中
         if (seckill == null) {
             seckill = seckillMapper.selectByPrimaryKey(seckillId);
-            redisCache.setCacheObject(
+            redisCache.setNXCacheObject(
                     Constants.SECKILL_KEY + seckillId,
                     seckill,
                     seckill.getSeckillEnd().getTime() - nowTime,
@@ -169,44 +167,18 @@ public class SeckillService implements ISeckillService {
             CMallException.fail("秒杀已结束");
         }
 
-//        Map<String, Object> map = new HashMap<>(8);
-//        map.put("seckillId", seckillId);
-//        map.put("userId", userId);
-//        map.put("killTime", new Date());
-//        map.put("result", null);
+        // 记录秒杀成功与库存减扣
         SeckillSuccessDTO seckillSuccessDTO = new SeckillSuccessDTO();
         seckillSuccessDTO.setSeckillId(seckillId);
         seckillSuccessDTO.setUserId(userId);
         seckillSuccessDTO.setCreateTime(new Date());
 
-//        long start = System.currentTimeMillis();
         // 减库存，消息队列
         messageHandler.sendMessage(CMALL_DIRECT, SECKILL_STOCK_DECREASE, seckillId);
         // 记录秒杀成功
         if(seckillSuccessMapper.insertSuccessRecord(seckillSuccessDTO) <= 0){
             CMallException.fail("很遗憾！未抢购到秒杀商品");
         }
-//        logger.info("insertSuccessRecord: " + (System.currentTimeMillis() - start));
-//        start = System.currentTimeMillis();
-//        if (!seckillMapper.decreaseStock(seckillId)) {
-//            CMallException.fail("很遗憾！未抢购到秒杀商品");
-//        }
-//        logger.info("seckill: " + (System.currentTimeMillis() - start));
-
-//        // 执行存储过程，result被赋值
-//        try {
-//            seckillMapper.killByProcedure(map); // 减库存操作
-//        } catch (Exception e) {
-//            e.printStackTrace();
-//            CMallException.fail("服务器异常");
-//        }
-        // 获取result -2sql执行失败 -1未插入数据 0未更新数据 1sql执行成功
-        // map.get("result");
-//        int result = MapUtils.getInteger(map, "result", -2);
-//        if (result != 1) {
-//            CMallException.fail("很遗憾！未抢购到秒杀商品");
-//        }
-        // result == 1 说明秒杀成功，并且秒杀成功表插入了一条该用户秒杀成功的数据
 
         // 获得该用户的秒杀成功
         SeckillSuccess seckillSuccess = seckillSuccessMapper
@@ -298,10 +270,7 @@ public class SeckillService implements ISeckillService {
         // 并且把过期的秒杀设置为下架状态
         if (!expiredSeckillList.isEmpty()){
             List<Long> seckillIds = expiredSeckillList.stream().map(Seckill::getSeckillId).toList();
-            if (seckillMapper.putOffBatch(seckillIds) <= 0){
-                CMallException.fail("无法设置秒杀过期下架");
-            }
-            deleteSeckillFromCache(seckillIds);
+            messageHandler.sendMessage(CMALL_DIRECT, SECKILL_EXPIRE, seckillIds);
         }
 
         // 放入redis
@@ -321,9 +290,12 @@ public class SeckillService implements ISeckillService {
         SeckillSuccess seckillSuccess = seckillSuccessMapper
                 .getSeckillSuccessByUserIdAndSeckillId(userId, seckillId);
         // 清除秒杀成功记录
-        if (seckillSuccessMapper.deleteByPrimaryKey(seckillSuccess.getSecId()) <= 0) {
-            CMallException.fail("清除秒杀记录失败");
+        if (seckillSuccess != null){
+            if (seckillSuccessMapper.deleteByPrimaryKey(seckillSuccess.getSecId()) <= 0) {
+                CMallException.fail("清除秒杀记录失败");
+            }
         }
+
         // 恢复实际库存
         if (!seckillMapper.addStock(seckillId)) {
             CMallException.fail("恢复库存失败");
@@ -332,6 +304,14 @@ public class SeckillService implements ISeckillService {
         redisCache.increment(Constants.SECKILL_GOODS_STOCK_KEY + seckillId);
         // 清除缓存中的用户秒杀记录
         redisCache.deleteCacheSetMember(Constants.SECKILL_SUCCESS_USER_ID + seckillId, userId);
+    }
+
+    @Override
+    public void expireByIds(List<Long> seckillIds) {
+        if (seckillMapper.putOffBatch(seckillIds) <= 0){
+                CMallException.fail("无法设置秒杀过期下架");
+        }
+        deleteSeckillFromCache(seckillIds);
     }
 
     private void deleteSeckillFromCache(List<Long> seckillIds){

@@ -1,5 +1,8 @@
 server:
   port: 8086
+  compression:
+    enabled: true
+    mime-types: application/json
   tomcat:
     threads:
       max: 800
@@ -16,7 +19,7 @@ spring:
     password: 123456
     hikari:
 #      minimum-idle: 100 # 启动时连接数 不设置时与maximum-pool-size相同
-      maximum-pool-size: 300
+      maximum-pool-size: 500
       connection-timeout: 30000 # 创建连接等待时间
       max-lifetime: 600000 # 活跃最长时间，比数据库允许最长时间要短
       idle-timeout: 90000 # 空闲最长时间，超过这个时间并且比min值大，会被踢出线程池
@@ -24,6 +27,12 @@ spring:
 
   cloud:
     openfeign:
+      compression:
+        request:
+          enabled: true
+          mime-types: application/json
+        response:
+          enabled: true
       client:
         config:
           default:

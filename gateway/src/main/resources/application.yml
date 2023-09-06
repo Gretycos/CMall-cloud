@@ -1,5 +1,8 @@
 server:
   port: 10010
+  compression:
+    enabled: true
+    mime-types: application/json
   netty:
     idle-timeout: 60000 # 空闲时间
     connection-timeout: 30000 # 握手超时时间

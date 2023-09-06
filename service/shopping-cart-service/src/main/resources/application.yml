@@ -1,5 +1,8 @@
 server:
   port: 8085
+  compression:
+    enabled: true
+    mime-types: application/json
   tomcat:
     # idle-timeout 不可设置 默认是60s
     connection-timeout: 20000 # 请求握手超时时间
@@ -20,6 +23,12 @@ spring:
 
   cloud:
     openfeign:
+      compression:
+        request:
+          enabled: true
+          mime-types: application/json
+        response:
+          enabled: true
       client:
         config:
           default:

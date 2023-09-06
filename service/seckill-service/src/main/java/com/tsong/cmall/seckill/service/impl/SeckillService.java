@@ -119,10 +119,10 @@ public class SeckillService implements ISeckillService {
     }
 
     @Override
-    @Transactional(rollbackFor = Exception.class)
+//    @Transactional(rollbackFor = Exception.class)
     public SeckillSuccessVO executeSeckill(Long seckillId, Long userId, Long addressId) {
-        // 判断能否在10毫秒内得到令牌，如果不能则立即返回false，不会阻塞程序
-        if (!rateLimiter.tryAcquire(10, TimeUnit.MILLISECONDS)) {
+        // 判断能否在6毫秒内得到令牌，如果不能则立即返回false，不会阻塞程序
+        if (!rateLimiter.tryAcquire(6, TimeUnit.MILLISECONDS)) {
             CMallException.fail("当前活动太火爆啦");
         }
         // 判断用户是否购买过秒杀商品
@@ -176,20 +176,24 @@ public class SeckillService implements ISeckillService {
         // 减库存，消息队列
         messageHandler.sendMessage(CMALL_DIRECT, SECKILL_STOCK_DECREASE, seckillId);
         // 记录秒杀成功
-        if(seckillSuccessMapper.insertSuccessRecord(seckillSuccessDTO) <= 0){
-            CMallException.fail("很遗憾！未抢购到秒杀商品");
-        }
+        messageHandler.sendMessage(CMALL_DIRECT, SECKILL_SUCCESS, seckillSuccessDTO);
+//        if(seckillSuccessMapper.insertSuccessRecord(seckillSuccessDTO) <= 0){
+//            CMallException.fail("很遗憾！未抢购到秒杀商品");
+//        }
 
-        // 获得该用户的秒杀成功
-        SeckillSuccess seckillSuccess = seckillSuccessMapper
-                .getSeckillSuccessByUserIdAndSeckillId(userId, seckillId);
+//        // 获得该用户的秒杀成功
+//        SeckillSuccess seckillSuccess = seckillSuccessMapper
+//                .getSeckillSuccessByUserIdAndSeckillId(userId, seckillId);
         // 传回前端结果
         SeckillSuccessVO seckillSuccessVO = new SeckillSuccessVO();
-        Long seckillSuccessId = seckillSuccess.getSecId();
-        seckillSuccessVO.setSeckillSuccessId(seckillSuccessId);
         seckillSuccessVO.setMd5(
                 MD5Util.MD5Encode(
-                        seckillSuccessId + Constants.SECKILL_ORDER_SALT, Constants.UTF_ENCODING));
+                        seckillId + userId + Constants.SECKILL_ORDER_SALT, Constants.UTF_ENCODING));
+//        Long seckillSuccessId = seckillSuccess.getSecId();
+//        seckillSuccessVO.setSeckillSuccessId(seckillSuccessId);
+//        seckillSuccessVO.setMd5(
+//                MD5Util.MD5Encode(
+//                        seckillSuccessId + Constants.SECKILL_ORDER_SALT, Constants.UTF_ENCODING));
 
         // 消息队列
         // 创建订单
@@ -309,9 +313,16 @@ public class SeckillService implements ISeckillService {
     @Override
     public void expireByIds(List<Long> seckillIds) {
         if (seckillMapper.putOffBatch(seckillIds) <= 0){
-                CMallException.fail("无法设置秒杀过期下架");
+            CMallException.fail("无法设置秒杀过期下架");
         }
         deleteSeckillFromCache(seckillIds);
+    }
+
+    @Override
+    public void seckillSuccess(SeckillSuccessDTO seckillSuccessDTO) {
+        if (seckillSuccessMapper.insertSuccessRecord(seckillSuccessDTO) <= 0){
+            CMallException.fail("秒杀成功记录失败");
+        }
     }
 
     private void deleteSeckillFromCache(List<Long> seckillIds){

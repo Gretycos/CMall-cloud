@@ -11,6 +11,7 @@ public class MQQueueCons {
     public static final String ORDER_SECKILL_CREATE_QUEUE = "order.seckill.create.queue"; // 秒杀订单创建队列
 
     public static final String SECKILL_EXPIRE_QUEUE = "seckill.expire.queue"; // 秒杀过期队列
+    public static final String SECKILL_SUCCESS_QUEUE = "seckill.success.queue"; // 秒杀成功队列
     public static final String SECKILL_STOCK_DECREASE_QUEUE = "seckill.stock.decrease.queue"; // 秒杀库存减少队列
     public static final String SECKILL_STOCK_DECREASE_QUEUE_DL = "seckill.stock.decrease.queue.dl"; // 秒杀库存减少死信队列
     public static final String SECKILL_STOCK_RECOVER_QUEUE = "seckill.stock.recover.queue"; // 秒杀库存恢复队列

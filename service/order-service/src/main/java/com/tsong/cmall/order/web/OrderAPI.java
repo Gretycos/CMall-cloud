@@ -44,11 +44,10 @@ public class OrderAPI {
     @GetMapping("/seckillOrderNo")
     @Operation(summary = "秒杀订单号查询接口", description = "")
     public Result getSeckillOrderNo(@Parameter(name = "秒杀id") @RequestParam Long seckillId,
-                                    @Parameter(name = "秒杀成功id") @RequestParam Long seckillSuccessId,
                                     @Parameter(name = "秒杀成功密钥") @RequestParam String seckillSecretKey,
                                     @RequestParam Long userId) {
         Result result = ResultGenerator.genSuccessResult();
-        result.setData(orderService.getSeckillOrderNo(userId, seckillId, seckillSuccessId, seckillSecretKey));
+        result.setData(orderService.getSeckillOrderNo(userId, seckillId, seckillSecretKey));
         return result;
     }
 

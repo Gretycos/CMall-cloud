@@ -2,6 +2,7 @@ package com.tsong.cmall.seckill.mq.listener;
 
 import com.rabbitmq.client.Channel;
 import com.tsong.cmall.msg.SeckillStockMsg;
+import com.tsong.cmall.seckill.mapper.dto.SeckillSuccessDTO;
 import com.tsong.cmall.seckill.service.ISeckillService;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.amqp.support.AmqpHeaders;
@@ -47,6 +48,14 @@ public class SeckillMQListener {
                                     Channel channel,
                                     @Header(AmqpHeaders.DELIVERY_TAG) long deliveryTag) throws IOException {
         seckillService.expireByIds(seckillIds);
+        channel.basicAck(deliveryTag, false);
+    }
+
+    @RabbitListener(queues = SECKILL_SUCCESS_QUEUE)
+    public void handleSeckillSuccess(SeckillSuccessDTO seckillSuccessDTO,
+                                     Channel channel,
+                                     @Header(AmqpHeaders.DELIVERY_TAG) long deliveryTag) throws IOException {
+        seckillService.seckillSuccess(seckillSuccessDTO);
         channel.basicAck(deliveryTag, false);
     }
 }

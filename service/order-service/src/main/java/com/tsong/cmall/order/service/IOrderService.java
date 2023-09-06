@@ -24,7 +24,7 @@ public interface IOrderService {
      * @Param [user, couponUserId, myShoppingCartItems]
      * @Return java.lang.String
      */
-    String getSeckillOrderNo(Long userId, Long seckillId, Long seckillSuccessId, String seckillSecretKey);
+    String getSeckillOrderNo(Long userId, Long seckillId, String seckillSecretKey);
 
     /**
      * @Description 用订单id获取订单详情

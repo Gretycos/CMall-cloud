@@ -205,9 +205,9 @@ public class OrderService implements IOrderService {
     }
 
     @Override
-    public String getSeckillOrderNo(Long userId, Long seckillId, Long seckillSuccessId, String seckillSecretKey) {
+    public String getSeckillOrderNo(Long userId, Long seckillId, String seckillSecretKey) {
         if (!seckillSecretKey.equals(
-                MD5Util.MD5Encode(seckillSuccessId + SECKILL_ORDER_SALT, UTF_ENCODING))){
+                MD5Util.MD5Encode(seckillId + userId + SECKILL_ORDER_SALT, UTF_ENCODING))){
             CMallException.fail("查询失败");
         }
         String orderNo = orderMapper.selectOrderNoByUserIdAndSeckillId(userId, seckillId);

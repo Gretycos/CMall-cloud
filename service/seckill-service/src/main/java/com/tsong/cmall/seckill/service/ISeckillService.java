@@ -1,6 +1,7 @@
 package com.tsong.cmall.seckill.service;
 
 import com.tsong.cmall.entity.Seckill;
+import com.tsong.cmall.seckill.mapper.dto.SeckillSuccessDTO;
 import com.tsong.cmall.seckill.web.vo.SeckillGoodsVO;
 import com.tsong.cmall.seckill.web.vo.SeckillSuccessVO;
 import com.tsong.cmall.seckill.web.vo.UrlExposerVO;
@@ -23,4 +24,6 @@ public interface ISeckillService {
     void stockRecover(Long userId, Long seckillId);
 
     void expireByIds(List<Long> seckillIds);
+
+    void seckillSuccess(SeckillSuccessDTO seckillSuccessDTO);
 }

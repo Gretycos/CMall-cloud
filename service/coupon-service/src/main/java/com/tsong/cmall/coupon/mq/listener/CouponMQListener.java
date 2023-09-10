@@ -9,7 +9,9 @@ import org.springframework.messaging.handler.annotation.Header;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
+import java.util.List;
 
+import static com.tsong.cmall.common.constants.MQQueueCons.COUPON_EXPIRE_QUEUE;
 import static com.tsong.cmall.common.constants.MQQueueCons.COUPON_RECOVER_QUEUE;
 
 /**
@@ -26,6 +28,14 @@ public class CouponMQListener {
                               Channel channel,
                               @Header(AmqpHeaders.DELIVERY_TAG) long deliveryTag) throws IOException {
         couponService.releaseCoupon(orderId);
+        channel.basicAck(deliveryTag, false);
+    }
+
+    @RabbitListener(queues = COUPON_EXPIRE_QUEUE)
+    public void couponRecover(List<Long> userCouponRecordIds,
+                              Channel channel,
+                              @Header(AmqpHeaders.DELIVERY_TAG) long deliveryTag) throws IOException {
+        couponService.expireUserCoupons(userCouponRecordIds);
         channel.basicAck(deliveryTag, false);
     }
 }

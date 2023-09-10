@@ -22,4 +22,5 @@ public class MQRoutingKeyCons {
     public static final String SECKILL_STOCK_RECOVER_DL = "seckill.stock.recover.dl";
 
     public static final String COUPON_RECOVER = "coupon.recover";
+    public static final String COUPON_EXPIRE = "coupon.expire";
 }

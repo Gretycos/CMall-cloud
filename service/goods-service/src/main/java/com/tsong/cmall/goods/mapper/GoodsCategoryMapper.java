@@ -10,4 +10,6 @@ import java.util.List;
  */
 public interface GoodsCategoryMapper {
     List<GoodsCategory> selectByPrimaryKeys(List<Long> ids);
+
+    List<GoodsCategory> selectByLevelAndParentIdsAndNumber(List<Long> parentIds, int categoryLevel, int number);
 }

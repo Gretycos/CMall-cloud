@@ -529,7 +529,9 @@ public class OrderService implements IOrderService {
             CMallException.fail(RPC_ERROR.getResult() + couponResult.getMessage());
         }
         Coupon coupon = couponResult.getData();
-        orderDetailVO.setDiscount(new BigDecimal(coupon.getDiscount()));
+        if (coupon != null) {
+            orderDetailVO.setDiscount(new BigDecimal(coupon.getDiscount()));
+        }
         return orderDetailVO;
     }
 

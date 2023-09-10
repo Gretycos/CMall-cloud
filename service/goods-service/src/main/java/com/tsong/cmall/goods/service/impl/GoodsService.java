@@ -164,6 +164,11 @@ public class GoodsService implements IGoodsService {
         return goodsInfoMapper.recoverStockNum(stockNumDTOS);
     }
 
+    @Override
+    public void decreaseStockNum(List<StockNumDTO> stockNumDTOS) {
+        goodsInfoMapper.decreaseStockNum(stockNumDTOS);
+    }
+
     private boolean isIndexExisted(String index) {
         boolean exists = false;
         ExistsRequest request = new ExistsRequest.Builder()
@@ -241,7 +246,7 @@ public class GoodsService implements IGoodsService {
         // 关键字搜索
         String key = (String) pageUtil.get("keyword");
 
-        if (key == null){ // 不需要判断合法，在controller已判断
+        if (!StringUtils.hasText(key)){
             bq.must(q -> q.matchAll(ma -> ma));
         } else {
             bq.must(q -> q

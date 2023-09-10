@@ -7,7 +7,9 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 import static com.tsong.cmall.common.constants.MQExchangeCons.CMALL_DIRECT;
+import static com.tsong.cmall.common.constants.MQQueueCons.COUPON_EXPIRE_QUEUE;
 import static com.tsong.cmall.common.constants.MQQueueCons.COUPON_RECOVER_QUEUE;
+import static com.tsong.cmall.common.constants.MQRoutingKeyCons.COUPON_EXPIRE;
 import static com.tsong.cmall.common.constants.MQRoutingKeyCons.COUPON_RECOVER;
 
 /**
@@ -33,7 +35,17 @@ public class MQConfig {
     }
 
     @Bean
+    public Queue expireQueue(){
+        return new Queue(COUPON_EXPIRE_QUEUE);
+    }
+
+    @Bean
     public Binding recoverBinding(){
         return BindingBuilder.bind(recoverQueue()).to(directExchange()).with(COUPON_RECOVER);
+    }
+
+    @Bean
+    public Binding expireBinding(){
+        return BindingBuilder.bind(expireQueue()).to(directExchange()).with(COUPON_EXPIRE);
     }
 }

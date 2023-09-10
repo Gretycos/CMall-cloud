@@ -7,7 +7,9 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 import static com.tsong.cmall.common.constants.MQExchangeCons.CMALL_DIRECT;
+import static com.tsong.cmall.common.constants.MQQueueCons.GOODS_STOCK_DECREASE_QUEUE;
 import static com.tsong.cmall.common.constants.MQQueueCons.GOODS_STOCK_RECOVER_QUEUE;
+import static com.tsong.cmall.common.constants.MQRoutingKeyCons.GOODS_STOCK_DECREASE;
 import static com.tsong.cmall.common.constants.MQRoutingKeyCons.GOODS_STOCK_RECOVER;
 
 
@@ -24,7 +26,7 @@ public class MQConfig {
     }
 
     @Bean
-    public DirectExchange topicExchange(){
+    public DirectExchange directExchange(){
         return new DirectExchange(CMALL_DIRECT);
     }
 
@@ -34,7 +36,17 @@ public class MQConfig {
     }
 
     @Bean
+    public Queue stockDecreaseQueue(){
+        return new Queue(GOODS_STOCK_DECREASE_QUEUE);
+    }
+
+    @Bean
     public Binding recoverBinding(){
-        return BindingBuilder.bind(recoverQueue()).to(topicExchange()).with(GOODS_STOCK_RECOVER);
+        return BindingBuilder.bind(recoverQueue()).to(directExchange()).with(GOODS_STOCK_RECOVER);
+    }
+
+    @Bean
+    public Binding stockDecreaseBinding(){
+        return BindingBuilder.bind(stockDecreaseQueue()).to(directExchange()).with(GOODS_STOCK_DECREASE);
     }
 }

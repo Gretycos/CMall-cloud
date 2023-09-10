@@ -92,4 +92,6 @@ public interface ICouponService {
      * @Return com.tsong.cmall.entity.Coupon
      */
     Coupon getByOrderId(Long id);
+
+    void expireUserCoupons(List<Long> userCouponRecordIds);
 }

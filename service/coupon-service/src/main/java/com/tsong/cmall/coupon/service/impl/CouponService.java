@@ -2,6 +2,7 @@ package com.tsong.cmall.coupon.service.impl;
 
 import com.tsong.cmall.common.enums.ServiceResultEnum;
 import com.tsong.cmall.common.exception.CMallException;
+import com.tsong.cmall.common.mq.MessageHandler;
 import com.tsong.cmall.common.util.BeanUtil;
 import com.tsong.cmall.common.util.PageQueryUtil;
 import com.tsong.cmall.common.util.PageResult;
@@ -26,6 +27,8 @@ import java.math.BigDecimal;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import static com.tsong.cmall.common.constants.MQExchangeCons.CMALL_DIRECT;
+import static com.tsong.cmall.common.constants.MQRoutingKeyCons.COUPON_EXPIRE;
 import static java.util.stream.Collectors.toMap;
 import static java.util.stream.Collectors.toSet;
 
@@ -42,6 +45,8 @@ public class CouponService implements ICouponService {
     private UserCouponRecordMapper userCouponRecordMapper;
     @Autowired
     private GoodsClient goodsClient;
+    @Autowired
+    private MessageHandler messageHandler;
 
     @Override
     public Coupon getCouponById(Long id) {
@@ -302,9 +307,7 @@ public class CouponService implements ICouponService {
             if (!expiredAndNotUsedUserCouponRecordList.isEmpty()){
                 List<Long> userCouponRecordIds = expiredAndNotUsedUserCouponRecordList.stream()
                         .map(UserCouponRecord::getCouponUserId).toList();
-                if (userCouponRecordMapper.expireBatch(userCouponRecordIds) <= 0){
-                    CMallException.fail("设置用户已领券失效失败");
-                }
+                messageHandler.sendMessage(CMALL_DIRECT, COUPON_EXPIRE, userCouponRecordIds);
             }
         }
     }
@@ -383,5 +386,10 @@ public class CouponService implements ICouponService {
             return couponMapper.selectByPrimaryKey(userCouponRecord.getCouponId());
         }
         return null;
+    }
+
+    @Override
+    public void expireUserCoupons(List<Long> userCouponRecordIds) {
+        userCouponRecordMapper.expireBatch(userCouponRecordIds);
     }
 }

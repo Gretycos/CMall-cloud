@@ -36,11 +36,11 @@ public class SeckillAPI {
     @Autowired
     private ISeckillService seckillService;
 
-    @GetMapping("/time/now")
-    @Operation(summary = "获取服务器时间", description = "")
-    public Result getTimeNow() {
-        return ResultGenerator.genSuccessResult(new Date().getTime());
-    }
+//    @GetMapping("/time/now")
+//    @Operation(summary = "获取服务器时间", description = "")
+//    public Result getTimeNow() {
+//        return ResultGenerator.genSuccessResult(new Date().getTime());
+//    }
 
     @GetMapping("/checkStock/{seckillId}")
     @Operation(summary = "判断秒杀商品的虚拟库存是否足够", description = "")

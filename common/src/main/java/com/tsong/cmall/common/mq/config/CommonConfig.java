@@ -22,7 +22,9 @@ public class CommonConfig implements ApplicationContextAware {
         // 配置ReturnsCallback
         rabbitTemplate.setReturnsCallback(returnedMessage -> {
             // 判断是否是延迟消息
-            if (returnedMessage.getMessage().getMessageProperties().getReceivedDelay() > 0){
+            Integer delay = returnedMessage.getMessage().getMessageProperties().getReceivedDelay();
+            // 延迟消息，直接跳过
+            if (delay!= null && delay > 0){
                 return;
             }
             log.error("Failed to send message to queue. {}", returnedMessage);

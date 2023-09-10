@@ -61,6 +61,14 @@
     </foreach>
   </update>
 
+  <!--  因为不需要其他属性，所以仅需一个DTO包含两个属性去更新就行了  -->
+  <update id="decreaseStockNum">
+    <foreach collection="stockNumDTOS" item="stockNumDTO">
+      update tb_goods_info set stock_num = stock_num-#{stockNumDTO.goodsCount}
+      where goods_id = #{stockNumDTO.goodsId} and stock_num >= #{stockNumDTO.goodsCount} and goods_sale_status = 1;
+    </foreach>
+  </update>
+
   <select id="selectByPrimaryKey" parameterType="java.lang.Long" resultMap="ResultMapWithBLOBs">
     select 
     <include refid="Base_Column_List" />

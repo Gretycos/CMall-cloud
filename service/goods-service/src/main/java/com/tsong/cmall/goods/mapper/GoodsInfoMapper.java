@@ -19,4 +19,5 @@ public interface GoodsInfoMapper {
 
     int recoverStockNum(List<StockNumDTO> stockNumDTOS);
 
+    int decreaseStockNum(List<StockNumDTO> stockNumDTOS);
 }

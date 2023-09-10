@@ -12,6 +12,7 @@ import org.springframework.stereotype.Component;
 import java.io.IOException;
 import java.util.List;
 
+import static com.tsong.cmall.common.constants.MQQueueCons.GOODS_STOCK_DECREASE_QUEUE;
 import static com.tsong.cmall.common.constants.MQQueueCons.GOODS_STOCK_RECOVER_QUEUE;
 
 /**
@@ -28,6 +29,14 @@ public class GoodsMQListener {
                                   Channel channel,
                                   @Header(AmqpHeaders.DELIVERY_TAG) long deliveryTag) throws IOException {
         goodsService.recoverStockNum(stockNumDTOS);
+        channel.basicAck(deliveryTag, false);
+    }
+
+    @RabbitListener(queues = GOODS_STOCK_DECREASE_QUEUE)
+    public void goodsStockDecrease(List<StockNumDTO> stockNumDTOS,
+                                  Channel channel,
+                                  @Header(AmqpHeaders.DELIVERY_TAG) long deliveryTag) throws IOException {
+        goodsService.decreaseStockNum(stockNumDTOS);
         channel.basicAck(deliveryTag, false);
     }
 }

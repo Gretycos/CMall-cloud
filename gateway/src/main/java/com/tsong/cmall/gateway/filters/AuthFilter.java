@@ -37,6 +37,7 @@ public class AuthFilter implements GlobalFilter, Ordered {
         whiteList.add("/api/homepage/**");
         whiteList.add("/api/user/login");
         whiteList.add("/api/user/register");
+        whiteList.add("/upload/**");
     }
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
@@ -48,7 +49,7 @@ public class AuthFilter implements GlobalFilter, Ordered {
         }
         HttpHeaders headers = request.getHeaders();
         List<String> tokens = headers.get("token");
-        List<String> userIds = headers.get("userId");
+        List<String> userIds = headers.get("user-id");
         if (tokens != null && !tokens.isEmpty() && userIds != null && !userIds.isEmpty()){
             String token = tokens.get(0);
             Long userId = Long.valueOf(userIds.get(0));

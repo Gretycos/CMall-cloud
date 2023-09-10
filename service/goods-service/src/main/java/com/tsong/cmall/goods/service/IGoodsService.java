@@ -36,4 +36,5 @@ public interface IGoodsService {
     List<GoodsCategory> getGoodsCategoryByIds(List<Long> ids);
 
     int recoverStockNum(List<StockNumDTO> stockNumDTOS);
+    void decreaseStockNum(List<StockNumDTO> stockNumDTOS);
 }

@@ -52,6 +52,9 @@ public class GoodsConstants {
                     "type": "keyword",
                     "index": false
                   },
+                  "goodsCategoryId":{
+                    "type": "long"
+                  },
                   "goodsCoverImg":{
                     "type": "keyword",
                     "index": false

@@ -31,7 +31,6 @@ import com.tsong.cmall.goods.service.IGoodsService;
 import com.tsong.cmall.goods.web.vo.SearchPageGoodsVO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
 
 import java.io.IOException;
@@ -260,15 +259,25 @@ public class GoodsService implements IGoodsService {
         // 条件过滤
         Integer minPrice = (Integer) pageUtil.get("minPrice");
         Integer maxPrice = (Integer) pageUtil.get("maxPrice");
+        Long goodsCategoryId = (Long) pageUtil.get("goodsCategoryId");
 
         // price
-        if (minPrice != null && maxPrice != null){
+        if (minPrice != null && maxPrice != null) {
             bq.filter(f -> f
                     .range(r -> r
                             .field("sellingPrice")
                             .gte(JsonData.of(minPrice))
                             .lte(JsonData.of(maxPrice))
                     )
+            );
+        }
+
+        // category
+        if (goodsCategoryId != null) {
+            bq.filter(f -> f
+                    .term(t -> t
+                            .field("goodsCategoryId")
+                            .value(goodsCategoryId))
             );
         }
 

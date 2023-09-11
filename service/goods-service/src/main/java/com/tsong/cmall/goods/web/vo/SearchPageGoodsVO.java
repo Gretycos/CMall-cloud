@@ -28,6 +28,9 @@ public class SearchPageGoodsVO implements Serializable {
     @Schema(title = "商品简介")
     private String goodsIntro;
 
+    @Schema(title = "商品类别，第三级")
+    private Long goodsCategoryId;
+
     @Schema(title = "商品图片地址")
     private String goodsCoverImg;
 

@@ -1,0 +1,287 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.tsong.cmall.admin.goods.mapper.AdminGoodsMapper">
+  <resultMap id="BaseResultMap" type="com.tsong.cmall.entity.GoodsInfo">
+    <id column="goods_id" jdbcType="BIGINT" property="goodsId" />
+    <result column="goods_name" jdbcType="VARCHAR" property="goodsName" />
+    <result column="goods_intro" jdbcType="VARCHAR" property="goodsIntro" />
+    <result column="goods_category_id" jdbcType="BIGINT" property="goodsCategoryId" />
+    <result column="goods_cover_img" jdbcType="VARCHAR" property="goodsCoverImg" />
+    <result column="goods_carousel" jdbcType="VARCHAR" property="goodsCarousel" />
+    <result column="original_price" jdbcType="DECIMAL" property="originalPrice" />
+    <result column="selling_price" jdbcType="DECIMAL" property="sellingPrice" />
+    <result column="stock_num" jdbcType="INTEGER" property="stockNum" />
+    <result column="tag" jdbcType="VARCHAR" property="tag" />
+    <result column="goods_sale_status" jdbcType="TINYINT" property="goodsSaleStatus" />
+    <result column="is_ad" jdbcType="BOOLEAN" property="isAD" />
+    <result column="create_user" jdbcType="BIGINT" property="createUser" />
+    <result column="create_time" jdbcType="TIMESTAMP" property="createTime" />
+    <result column="update_user" jdbcType="BIGINT" property="updateUser" />
+    <result column="update_time" jdbcType="TIMESTAMP" property="updateTime" />
+  </resultMap>
+  <resultMap extends="BaseResultMap" id="ResultMapWithBLOBs" type="com.tsong.cmall.entity.GoodsInfo">
+    <result column="goods_detail_content" jdbcType="LONGVARCHAR" property="goodsDetailContent" />
+  </resultMap>
+  <sql id="Base_Column_List">
+    goods_id, goods_name, goods_intro, goods_category_id, goods_cover_img, goods_carousel, 
+    original_price, selling_price, stock_num, tag, goods_sale_status, is_ad, create_user, create_time,
+    update_user, update_time
+  </sql>
+  <sql id="Blob_Column_List">
+    goods_detail_content
+  </sql>
+
+  <select id="getGoodsList" parameterType="Map" resultMap="BaseResultMap">
+    select
+    <include refid="Base_Column_List"/>
+    from tb_goods_info
+    <where>
+      <if test="createUser!=null and createUser != 1">
+        and create_user = #{createUser}
+      </if>
+      <if test="goodsName!=null and goodsName!=''">
+        and goods_name like CONCAT('%',#{goodsName},'%')
+      </if>
+      <if test="goodsSaleStatus!=null and goodsSaleStatus!=''">
+        and goods_sale_status = #{goodsSaleStatus}
+      </if>
+      <if test="startTime != null and startTime.trim() != ''">
+        and create_time &gt; #{startTime}
+      </if>
+      <if test="endTime != null and endTime.trim() != ''">
+        and create_time &lt; #{endTime}
+      </if>
+    </where>
+    order by goods_id desc
+    <if test="start!=null and limit!=null">
+      limit #{start},#{limit}
+    </if>
+  </select>
+
+  <select id="getTotalGoods" parameterType="Map" resultType="int">
+    select count(*) from tb_goods_info
+    <where>
+      <if test="createUser!=null and createUser != 1">
+        and create_user = #{createUser}
+      </if>
+      <if test="goodsName!=null and goodsName!=''">
+        and goods_name like CONCAT('%',#{goodsName},'%')
+      </if>
+      <if test="goodsSaleStatus!=null and goodsSaleStatus!=''">
+        and goods_sale_status = #{goodsSaleStatus}
+      </if>
+      <if test="startTime != null and startTime.trim() != ''">
+        and create_time &gt; #{startTime}
+      </if>
+      <if test="endTime != null and endTime.trim() != ''">
+        and create_time &lt; #{endTime}
+      </if>
+    </where>
+  </select>
+
+  <select id="selectByCategoryIdAndName" resultMap="ResultMapWithBLOBs">
+    select
+    <include refid="Base_Column_List"/>
+    ,
+    <include refid="Blob_Column_List"/>
+    from tb_goods_info
+    where goods_name = #{goodsName,jdbcType=VARCHAR} and goods_category_id = #{goodsCategoryId,jdbcType=BIGINT}
+  </select>
+
+  <select id="selectByIdAndCreateUser" resultMap="ResultMapWithBLOBs">
+    select
+    <include refid="Base_Column_List" />
+    ,
+    <include refid="Blob_Column_List" />
+    from tb_goods_info
+    where goods_id = #{goodsId,jdbcType=BIGINT}
+    <if test="createUser!=null and createUser != 1">
+      and create_user = #{createUser}
+    </if>
+  </select>
+
+  <select id="selectByCreateUser" resultMap="BaseResultMap">
+    select
+    <include refid="Base_Column_List" />
+    from tb_goods_info
+    where create_user = #{createUser}
+  </select>
+
+  <update id="batchUpdateSaleStatus">
+    update tb_goods_info
+    set goods_sale_status=#{saleStatus},update_time=now()
+    where goods_id in
+    <foreach item="id" collection="orderIds" open="(" separator="," close=")">
+      #{id}
+    </foreach>
+    <if test="createUser!=null and createUser != 1">
+      and create_user = #{createUser}
+    </if>
+  </update>
+
+  <select id="selectByPrimaryKey" parameterType="java.lang.Long" resultMap="ResultMapWithBLOBs">
+    select
+    <include refid="Base_Column_List" />
+    ,
+    <include refid="Blob_Column_List" />
+    from tb_goods_info
+    where goods_id = #{goodsId,jdbcType=BIGINT}
+  </select>
+
+  <insert id="insertSelective" parameterType="com.tsong.cmall.entity.GoodsInfo">
+    insert into tb_goods_info
+    <trim prefix="(" suffix=")" suffixOverrides=",">
+      <if test="goodsId != null">
+        goods_id,
+      </if>
+      <if test="goodsName != null">
+        goods_name,
+      </if>
+      <if test="goodsIntro != null">
+        goods_intro,
+      </if>
+      <if test="goodsCategoryId != null">
+        goods_category_id,
+      </if>
+      <if test="goodsCoverImg != null">
+        goods_cover_img,
+      </if>
+      <if test="goodsCarousel != null">
+        goods_carousel,
+      </if>
+      <if test="originalPrice != null">
+        original_price,
+      </if>
+      <if test="sellingPrice != null">
+        selling_price,
+      </if>
+      <if test="stockNum != null">
+        stock_num,
+      </if>
+      <if test="tag != null">
+        tag,
+      </if>
+      <if test="goodsSaleStatus != null">
+        goods_sale_status,
+      </if>
+      <if test="createUser != null">
+        create_user,
+      </if>
+      <if test="createTime != null">
+        create_time,
+      </if>
+      <if test="updateUser != null">
+        update_user,
+      </if>
+      <if test="updateTime != null">
+        update_time,
+      </if>
+      <if test="goodsDetailContent != null">
+        goods_detail_content,
+      </if>
+    </trim>
+    <trim prefix="values (" suffix=")" suffixOverrides=",">
+      <if test="goodsId != null">
+        #{goodsId,jdbcType=BIGINT},
+      </if>
+      <if test="goodsName != null">
+        #{goodsName,jdbcType=VARCHAR},
+      </if>
+      <if test="goodsIntro != null">
+        #{goodsIntro,jdbcType=VARCHAR},
+      </if>
+      <if test="goodsCategoryId != null">
+        #{goodsCategoryId,jdbcType=BIGINT},
+      </if>
+      <if test="goodsCoverImg != null">
+        #{goodsCoverImg,jdbcType=VARCHAR},
+      </if>
+      <if test="goodsCarousel != null">
+        #{goodsCarousel,jdbcType=VARCHAR},
+      </if>
+      <if test="originalPrice != null">
+        #{originalPrice,jdbcType=DECIMAL},
+      </if>
+      <if test="sellingPrice != null">
+        #{sellingPrice,jdbcType=DECIMAL},
+      </if>
+      <if test="stockNum != null">
+        #{stockNum,jdbcType=INTEGER},
+      </if>
+      <if test="tag != null">
+        #{tag,jdbcType=VARCHAR},
+      </if>
+      <if test="goodsSaleStatus != null">
+        #{goodsSaleStatus,jdbcType=TINYINT},
+      </if>
+      <if test="createUser != null">
+        #{createUser,jdbcType=BIGINT},
+      </if>
+      <if test="createTime != null">
+        #{createTime,jdbcType=TIMESTAMP},
+      </if>
+      <if test="updateUser != null">
+        #{updateUser,jdbcType=BIGINT},
+      </if>
+      <if test="updateTime != null">
+        #{updateTime,jdbcType=TIMESTAMP},
+      </if>
+      <if test="goodsDetailContent != null">
+        #{goodsDetailContent,jdbcType=LONGVARCHAR},
+      </if>
+    </trim>
+  </insert>
+
+  <update id="updateByPrimaryKeySelective" parameterType="com.tsong.cmall.entity.GoodsInfo">
+    update tb_goods_info
+    <set>
+      <if test="goodsName != null">
+        goods_name = #{goodsName,jdbcType=VARCHAR},
+      </if>
+      <if test="goodsIntro != null">
+        goods_intro = #{goodsIntro,jdbcType=VARCHAR},
+      </if>
+      <if test="goodsCategoryId != null">
+        goods_category_id = #{goodsCategoryId,jdbcType=BIGINT},
+      </if>
+      <if test="goodsCoverImg != null">
+        goods_cover_img = #{goodsCoverImg,jdbcType=VARCHAR},
+      </if>
+      <if test="goodsCarousel != null">
+        goods_carousel = #{goodsCarousel,jdbcType=VARCHAR},
+      </if>
+      <if test="originalPrice != null">
+        original_price = #{originalPrice,jdbcType=DECIMAL},
+      </if>
+      <if test="sellingPrice != null">
+        selling_price = #{sellingPrice,jdbcType=DECIMAL},
+      </if>
+      <if test="stockNum != null">
+        stock_num = #{stockNum,jdbcType=INTEGER},
+      </if>
+      <if test="tag != null">
+        tag = #{tag,jdbcType=VARCHAR},
+      </if>
+      <if test="goodsSaleStatus != null">
+        goods_sale_status = #{goodsSaleStatus,jdbcType=TINYINT},
+      </if>
+      <if test="createUser != null">
+        create_user = #{createUser,jdbcType=BIGINT},
+      </if>
+      <if test="createTime != null">
+        create_time = #{createTime,jdbcType=TIMESTAMP},
+      </if>
+      <if test="updateUser != null">
+        update_user = #{updateUser,jdbcType=BIGINT},
+      </if>
+      <if test="updateTime != null">
+        update_time = #{updateTime,jdbcType=TIMESTAMP},
+      </if>
+      <if test="goodsDetailContent != null">
+        goods_detail_content = #{goodsDetailContent,jdbcType=LONGVARCHAR},
+      </if>
+    </set>
+    where goods_id = #{goodsId,jdbcType=BIGINT}
+  </update>
+
+</mapper>

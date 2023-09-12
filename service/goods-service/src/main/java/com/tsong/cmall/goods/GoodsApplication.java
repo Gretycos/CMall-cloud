@@ -9,8 +9,15 @@ import org.springframework.context.annotation.ComponentScan;
  * @Author Tsong
  * @Date 2023/8/20 15:01
  */
-@MapperScan("com.tsong.cmall.goods.mapper")
-@ComponentScan(value = {"com.tsong.cmall.admin.goods.*","com.tsong.cmall.goods.*"})
+@MapperScan({
+        "com.tsong.cmall.goods.mapper",
+        "com.tsong.cmall.admin.goods.mapper"
+})
+@ComponentScan(value = {
+        "com.tsong.cmall.admin.goods.*",
+        "com.tsong.cmall.goods.*",
+        "com.tsong.cmall.common.exception"
+})
 @SpringBootApplication
 public class GoodsApplication {
     public static void main(String[] args) {

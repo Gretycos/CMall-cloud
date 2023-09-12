@@ -12,7 +12,10 @@ import org.springframework.context.annotation.ComponentScan;
  * @Date 2023/8/20 14:05
  */
 @EnableFeignClients(clients = GoodsClient.class)
-@MapperScan("com.tsong.cmall.coupon.mapper")
+@MapperScan({
+        "com.tsong.cmall.coupon.mapper",
+        "com.tsong.cmall.admin.coupon.mapper"
+})
 @ComponentScan(value = "com.tsong.cmall.*")
 @SpringBootApplication
 public class CouponApplication {

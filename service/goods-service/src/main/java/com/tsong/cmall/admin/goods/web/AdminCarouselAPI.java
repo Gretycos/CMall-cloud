@@ -36,7 +36,7 @@ public class AdminCarouselAPI {
     /**
      * 列表
      */
-    @GetMapping(value = "/list")
+    @GetMapping(value = "/")
     @Operation(summary = "轮播图列表", description = "轮播图列表")
     public Result list(@RequestParam(required = false) @Parameter(name = "页码") Integer pageNumber,
                        @RequestParam(required = false) @Parameter(name = "每页条数") Integer pageSize,

@@ -31,7 +31,29 @@
     goods_detail_content
   </sql>
 
-  <select id="getGoodsList" parameterType="Map" resultMap="BaseResultMap">
+  <select id="selectAll" resultMap="BaseResultMap">
+    select
+    <include refid="Base_Column_List"/>
+    from tb_goods_info
+  </select>
+
+  <select id="selectByPrimaryKeys" resultMap="BaseResultMap">
+    select
+    <include refid="Base_Column_List"/>
+    from tb_goods_info
+    where goods_id in
+    <foreach item="id" collection="list" open="(" separator="," close=")">
+      #{id}
+    </foreach>
+    <!-- 自定义排序，按list所给顺序排序 -->
+    order by field(goods_id,
+    <foreach item="id" collection="list" separator=",">
+      #{id}
+    </foreach>
+    );
+  </select>
+
+  <select id="selectGoodsList" parameterType="Map" resultMap="BaseResultMap">
     select
     <include refid="Base_Column_List"/>
     from tb_goods_info
@@ -111,7 +133,7 @@
     update tb_goods_info
     set goods_sale_status=#{saleStatus},update_time=now()
     where goods_id in
-    <foreach item="id" collection="orderIds" open="(" separator="," close=")">
+    <foreach item="id" collection="goodsIds" open="(" separator="," close=")">
       #{id}
     </foreach>
     <if test="createUser!=null and createUser != 1">

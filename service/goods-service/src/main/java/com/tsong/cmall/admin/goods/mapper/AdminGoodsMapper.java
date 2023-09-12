@@ -10,7 +10,7 @@ import java.util.List;
  * @Date 2023/9/12 00:08
  */
 public interface AdminGoodsMapper {
-    List<GoodsInfo> getGoodsList(PageQueryUtil pageUtil);
+    List<GoodsInfo> selectGoodsList(PageQueryUtil pageUtil);
 
     int getTotalGoods(PageQueryUtil pageUtil);
 
@@ -26,5 +26,9 @@ public interface AdminGoodsMapper {
 
     List<GoodsInfo> selectByCreateUser(Long createUser);
 
-    int batchUpdateSaleStatus(Long[] orderIds, int saleStatus, Long createUser);
+    int batchUpdateSaleStatus(Long[] goodsIds, int saleStatus, Long createUser);
+
+    List<GoodsInfo> selectByPrimaryKeys(List<Long> goodsIds);
+
+    List<GoodsInfo> selectAll();
 }

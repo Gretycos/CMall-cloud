@@ -28,7 +28,7 @@ import java.util.Map;
  */
 @RestController
 @Tag(name = "Admin Goods Category", description = "2-2.后台管理系统分类模块接口")
-@RequestMapping("/admin")
+@RequestMapping("/admin/category")
 public class AdminGoodsCategoryAPI {
 //    private static final Logger logger = LoggerFactory.getLogger(AdminGoodsCategoryAPI.class);
     @Autowired
@@ -37,7 +37,7 @@ public class AdminGoodsCategoryAPI {
     /**
      * 列表
      */
-    @GetMapping(value = "/categories")
+    @GetMapping(value = "/")
     @Operation(summary = "商品分类列表", description = "根据级别和上级分类id查询")
     public Result list(@RequestParam(required = false) @Parameter(name = "页码") Integer pageNumber,
                        @RequestParam(required = false) @Parameter(name = "每页条数") Integer pageSize,
@@ -62,7 +62,7 @@ public class AdminGoodsCategoryAPI {
     /**
      * 列表
      */
-    @GetMapping(value = "/categories4Select")
+    @GetMapping(value = "/select")
     @Operation(summary = "商品分类列表", description = "用于三级分类联动效果制作")
     public Result listForSelect(@RequestParam("categoryId") Long categoryId, Long adminId) {
         if (categoryId == null || categoryId < 1) {
@@ -74,7 +74,7 @@ public class AdminGoodsCategoryAPI {
     /**
      * 添加
      */
-    @PostMapping(value = "/categories")
+    @PostMapping(value = "/")
     @Operation(summary = "新增分类", description = "新增分类")
     public Result save(@RequestBody @Valid GoodsCategoryAddParam goodsCategoryAddParam, Long adminId) {
         String result = adminGoodsCategoryService.saveCategory(goodsCategoryAddParam);
@@ -89,7 +89,7 @@ public class AdminGoodsCategoryAPI {
     /**
      * 修改
      */
-    @PutMapping(value = "/categories")
+    @PutMapping(value = "/")
     @Operation(summary = "修改分类信息", description = "修改分类信息")
     public Result update(@RequestBody @Valid GoodsCategoryEditParam goodsCategoryEditParam, Long adminId) {
         String result = adminGoodsCategoryService.updateGoodsCategory(goodsCategoryEditParam);
@@ -103,7 +103,7 @@ public class AdminGoodsCategoryAPI {
     /**
      * 详情
      */
-    @GetMapping(value = "/categories/{id}")
+    @GetMapping(value = "/{id}")
     @Operation(summary = "获取单条分类信息", description = "根据id查询")
     public Result info(@PathVariable("id") Long id, Long adminId) {
         GoodsCategory goodsCategory = adminGoodsCategoryService.getGoodsCategoryById(id);
@@ -116,7 +116,7 @@ public class AdminGoodsCategoryAPI {
     /**
      * 分类删除
      */
-    @PostMapping(value = "/categories/delete")
+    @PostMapping(value = "/delete")
     @Operation(summary = "批量删除分类信息", description = "批量删除分类信息")
     public Result delete(@RequestBody @Valid BatchIdParam batchIdParam, Long adminId) {
         if (batchIdParam.getIds().length < 1) {
@@ -129,7 +129,7 @@ public class AdminGoodsCategoryAPI {
         }
     }
 
-    @GetMapping(value = "/categories/all")
+    @GetMapping(value = "/all")
     @Operation(summary = "三级分类列表", description = "")
     public Result searchAllCategories(Long adminId) {
         return ResultGenerator.genSuccessResult(adminGoodsCategoryService.getAllLevel3Categories());

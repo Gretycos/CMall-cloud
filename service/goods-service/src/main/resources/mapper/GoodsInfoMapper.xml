@@ -31,12 +31,6 @@
     goods_detail_content
   </sql>
 
-  <select id="selectAll" resultMap="BaseResultMap">
-    select
-    <include refid="Base_Column_List"/>
-    from tb_goods_info
-  </select>
-
   <select id="selectByPrimaryKeys" resultMap="BaseResultMap">
     select
     <include refid="Base_Column_List"/>

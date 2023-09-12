@@ -1,7 +1,6 @@
 package com.tsong.cmall.goods.service.impl;
 
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
-import co.elastic.clients.elasticsearch._types.FieldValue;
 import co.elastic.clients.elasticsearch._types.SortOrder;
 import co.elastic.clients.elasticsearch._types.query_dsl.BoolQuery;
 import co.elastic.clients.elasticsearch._types.query_dsl.FunctionBoostMode;
@@ -19,7 +18,6 @@ import co.elastic.clients.elasticsearch.indices.ExistsRequest;
 import co.elastic.clients.json.JsonData;
 import com.tsong.cmall.common.enums.ServiceResultEnum;
 import com.tsong.cmall.common.exception.CMallException;
-import com.tsong.cmall.common.util.BeanUtil;
 import com.tsong.cmall.common.util.PageQueryUtil;
 import com.tsong.cmall.common.util.PageResult;
 import com.tsong.cmall.dto.StockNumDTO;
@@ -70,9 +68,7 @@ public class GoodsService implements IGoodsService {
     public PageResult searchGoodsInfo(PageQueryUtil pageUtil) {
         List<SearchPageGoodsVO> searchPageGoodsVOList = null;
         if (!isIndexExisted(INDEX)){
-//            CMallException.fail(ServiceResultEnum.DB_ERROR.getResult());
-            createIndex(INDEX);
-            insertDoc();
+            CMallException.fail(ServiceResultEnum.DB_ERROR.getResult());
         }
         // 1. 准备request
         SearchRequest.Builder rb = new SearchRequest.Builder();
@@ -180,62 +176,6 @@ public class GoodsService implements IGoodsService {
             CMallException.fail(ServiceResultEnum.DB_ERROR.getResult());
         }
         return exists;
-    }
-
-    private void createIndex(String index) {
-        // 1.创建request对象
-        CreateIndexRequest request = new CreateIndexRequest.Builder()
-                // 1.1 指定索引名称
-                .index(index)
-                // 1.2 dsl语句
-                .withJson(GOODS_MAPPING)
-                .build();
-        // 2.发送请求 indices返回索引库操作的所有方法
-        try {
-            esClient.indices().create(request);
-        } catch (IOException e) {
-            CMallException.fail(ServiceResultEnum.DB_ERROR.getResult());
-        }
-    }
-
-    private void insertDoc() {
-        List<GoodsInfo> goodsList = goodsInfoMapper.selectAll();
-        List<SearchPageGoodsVO> searchPageGoodsVOS = goodsList.stream().map(SearchPageGoodsVO::new).toList();
-        // 1.创建builder
-        BulkRequest.Builder br = new BulkRequest.Builder();
-        for (SearchPageGoodsVO searchPageGoodsVO : searchPageGoodsVOS) {
-            br.operations(op -> op
-                    // 选择操作类型(传入操作类型的builder)[index, create, delete, update]
-                    // index和create都是插入
-                    // index：指定id，如id存在，查看version；否则新增
-                    //          不指定version，覆盖，version++
-                    //          指定version，如version不同：失败；如version相同：覆盖，version++
-                    // create：指定id，如id存在，失败；否则新增
-                    .index(idx -> idx
-                            .index(INDEX)
-                            .id(searchPageGoodsVO.getGoodsId().toString())
-                            .document(searchPageGoodsVO)
-                    )
-            );
-        }
-        // 2. 创建request
-        BulkRequest request = br.build();
-
-        // 3. 处理请求
-        BulkResponse response;
-        try {
-            response = esClient.bulk(request);
-            if (response.errors()){
-                CMallException.fail(ServiceResultEnum.DB_ERROR.getResult());
-                for (BulkResponseItem item : response.items()) {
-                    if (item.error() != null){
-                        CMallException.fail(item.error().reason());
-                    }
-                }
-            }
-        } catch (IOException e) {
-            CMallException.fail(ServiceResultEnum.DB_ERROR.getResult());
-        }
     }
 
     private void getBasicQueryBuilder(SearchRequest.Builder rb, PageQueryUtil pageUtil) {

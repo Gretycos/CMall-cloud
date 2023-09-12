@@ -15,8 +15,6 @@ public interface GoodsInfoMapper {
 
     List<GoodsInfo> selectByPrimaryKeys(List<Long> goodsIds);
 
-    List<GoodsInfo> selectAll();
-
     int recoverStockNum(List<StockNumDTO> stockNumDTOS);
 
     int decreaseStockNum(List<StockNumDTO> stockNumDTOS);

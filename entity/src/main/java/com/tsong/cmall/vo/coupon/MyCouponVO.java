@@ -1,4 +1,4 @@
-package com.tsong.cmall.vo;
+package com.tsong.cmall.vo.coupon;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import io.swagger.v3.oas.annotations.media.Schema;

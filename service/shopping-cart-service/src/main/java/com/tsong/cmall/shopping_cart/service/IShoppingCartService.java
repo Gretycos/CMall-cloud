@@ -4,7 +4,7 @@ import com.tsong.cmall.entity.ShoppingCartItem;
 import com.tsong.cmall.shopping_cart.web.params.SaveCartItemParam;
 import com.tsong.cmall.shopping_cart.web.params.UpdateCartItemParam;
 import com.tsong.cmall.shopping_cart.web.vo.ShoppingCartConfirmVO;
-import com.tsong.cmall.vo.ShoppingCartItemVO;
+import com.tsong.cmall.vo.shopping_cart.ShoppingCartItemVO;
 
 import java.util.List;
 

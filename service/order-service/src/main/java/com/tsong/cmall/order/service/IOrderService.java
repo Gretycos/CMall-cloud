@@ -4,8 +4,8 @@ import com.tsong.cmall.common.util.PageQueryUtil;
 import com.tsong.cmall.common.util.PageResult;
 import com.tsong.cmall.entity.Order;
 import com.tsong.cmall.order.mapper.dto.OrderPayStatusDTO;
-import com.tsong.cmall.order.web.vo.OrderDetailVO;
-import com.tsong.cmall.order.web.vo.OrderItemVO;
+import com.tsong.cmall.vo.order.OrderDetailVO;
+import com.tsong.cmall.vo.order.OrderItemVO;
 
 import java.math.BigDecimal;
 import java.util.List;

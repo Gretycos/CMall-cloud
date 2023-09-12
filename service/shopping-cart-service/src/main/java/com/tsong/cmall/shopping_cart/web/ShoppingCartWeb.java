@@ -3,7 +3,7 @@ package com.tsong.cmall.shopping_cart.web;
 import com.tsong.cmall.common.util.Result;
 import com.tsong.cmall.common.util.ResultGenerator;
 import com.tsong.cmall.shopping_cart.service.IShoppingCartService;
-import com.tsong.cmall.vo.ShoppingCartItemVO;
+import com.tsong.cmall.vo.shopping_cart.ShoppingCartItemVO;
 import io.swagger.v3.oas.annotations.Operation;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;

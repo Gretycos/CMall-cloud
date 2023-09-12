@@ -1,7 +1,7 @@
 package com.tsong.cmall.shopping_cart.web.vo;
 
-import com.tsong.cmall.vo.MyCouponVO;
-import com.tsong.cmall.vo.ShoppingCartItemVO;
+import com.tsong.cmall.vo.coupon.MyCouponVO;
+import com.tsong.cmall.vo.shopping_cart.ShoppingCartItemVO;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 

@@ -6,7 +6,7 @@ package com.tsong.feign.clients.shopping_cart;
  */
 
 import com.tsong.cmall.common.util.Result;
-import com.tsong.cmall.vo.ShoppingCartItemVO;
+import com.tsong.cmall.vo.shopping_cart.ShoppingCartItemVO;
 import com.tsong.feign.clients.shopping_cart.fallback.ShoppingCartClientFallbackFactory;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.DeleteMapping;

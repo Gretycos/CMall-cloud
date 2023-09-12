@@ -3,7 +3,6 @@ package com.tsong.feign.clients.coupon.fallback;
 import com.tsong.cmall.common.util.Result;
 import com.tsong.cmall.common.util.ResultGenerator;
 import com.tsong.cmall.entity.UserCouponRecord;
-import com.tsong.cmall.vo.ShoppingCartItemVO;
 import com.tsong.feign.clients.coupon.CouponClient;
 import org.springframework.cloud.openfeign.FallbackFactory;
 

@@ -15,7 +15,10 @@ import org.springframework.context.annotation.ComponentScan;
  * @Date 2023/8/20 22:52
  */
 @EnableFeignClients(clients = {ShoppingCartClient.class, GoodsClient.class, CouponClient.class, AddressClient.class})
-@MapperScan("com.tsong.cmall.order.mapper")
+@MapperScan({
+        "com.tsong.cmall.order.mapper",
+        "com.tsong.cmall.admin.order.mapper"
+})
 @ComponentScan(value = "com.tsong.cmall.*")
 @SpringBootApplication
 public class OrderApplication {

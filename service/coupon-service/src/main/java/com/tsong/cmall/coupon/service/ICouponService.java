@@ -2,8 +2,7 @@ package com.tsong.cmall.coupon.service;
 
 import com.tsong.cmall.common.util.PageQueryUtil;
 import com.tsong.cmall.common.util.PageResult;
-import com.tsong.cmall.vo.MyCouponVO;
-import com.tsong.cmall.vo.ShoppingCartItemVO;
+import com.tsong.cmall.vo.coupon.MyCouponVO;
 import com.tsong.cmall.entity.Coupon;
 import com.tsong.cmall.entity.UserCouponRecord;
 

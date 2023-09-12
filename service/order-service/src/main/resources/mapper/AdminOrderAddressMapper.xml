@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.tsong.cmall.admin.order.mapper.AdminOrderAddressMapper">
+  <resultMap id="BaseResultMap" type="com.tsong.cmall.entity.OrderAddress">
+    <id column="order_id" jdbcType="BIGINT" property="orderId" />
+    <result column="user_name" jdbcType="VARCHAR" property="userName" />
+    <result column="user_phone" jdbcType="VARCHAR" property="userPhone" />
+    <result column="province_name" jdbcType="VARCHAR" property="provinceName" />
+    <result column="city_name" jdbcType="VARCHAR" property="cityName" />
+    <result column="region_name" jdbcType="VARCHAR" property="regionName" />
+    <result column="detail_address" jdbcType="VARCHAR" property="detailAddress" />
+  </resultMap>
+  <sql id="Base_Column_List">
+    order_id, user_name, user_phone, province_name, city_name, region_name, detail_address
+  </sql>
+  <select id="selectByPrimaryKey" parameterType="java.lang.Long" resultMap="BaseResultMap">
+    select 
+    <include refid="Base_Column_List" />
+    from tb_order_address
+    where order_id = #{orderId,jdbcType=BIGINT}
+  </select>
+</mapper>

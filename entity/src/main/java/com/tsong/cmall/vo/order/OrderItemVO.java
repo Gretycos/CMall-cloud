@@ -1,4 +1,4 @@
-package com.tsong.cmall.vo;
+package com.tsong.cmall.vo.order;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
@@ -7,10 +7,7 @@ import java.io.Serializable;
 import java.math.BigDecimal;
 
 @Data
-public class ShoppingCartItemVO implements Serializable {
-    @Schema(title = "购物车id")
-    private Long cartItemId;
-
+public class OrderItemVO implements Serializable {
     @Schema(title = "商品id")
     private Long goodsId;
 
@@ -20,9 +17,12 @@ public class ShoppingCartItemVO implements Serializable {
     @Schema(title = "商品名")
     private String goodsName;
 
-    @Schema(title = "商品封面图")
+    @Schema(title = "商品封面图片")
     private String goodsCoverImg;
 
-    @Schema(title = "商品价格")
+    @Schema(title = "商品售价")
     private BigDecimal sellingPrice;
+
+    @Schema(title = "实际付款")
+    private BigDecimal paidPrice;
 }

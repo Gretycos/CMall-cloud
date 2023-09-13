@@ -10,8 +10,6 @@ import java.math.BigDecimal;
 import java.util.List;
 
 public interface ICouponService {
-    Coupon getCouponById(Long id);
-
     /**
      * @Description 通过领券记录获得优惠券
      * @Param [id]
@@ -65,25 +63,12 @@ public interface ICouponService {
                                                   BigDecimal priceTotal, Long userId);
 
     /**
-     * @Description 删除优惠券
-     * @Param [couponUserId]
-     * @Return boolean
-     */
-    boolean deleteCouponUser(Long couponUserId);
-
-    /**
      * @Description 释放未支付的优惠券
      * @Param [orderId]
      * @Return void
      */
     void releaseCoupon(Long orderId);
 
-    /**
-     * @Description 批量插入领券记录
-     * @Param [userCouponRecordList]
-     * @Return int
-     */
-    void insertUserCouponRecordBatch(List<UserCouponRecord> userCouponRecordList);
 
     /**
      * @Description 通过订单id查找优惠券

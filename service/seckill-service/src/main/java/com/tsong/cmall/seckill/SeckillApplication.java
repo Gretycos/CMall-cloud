@@ -12,7 +12,10 @@ import org.springframework.context.annotation.ComponentScan;
  * @Date 2023/8/22 14:56
  */
 @EnableFeignClients(clients = GoodsClient.class)
-@MapperScan("com.tsong.cmall.seckill.mapper")
+@MapperScan({
+        "com.tsong.cmall.seckill.mapper",
+        "com.tsong.cmall.admin.seckill.mapper"
+})
 @ComponentScan("com.tsong.cmall.*")
 @SpringBootApplication
 public class SeckillApplication {

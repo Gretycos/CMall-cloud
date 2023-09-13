@@ -25,6 +25,8 @@ public interface UserCouponRecordMapper {
 
     List<UserCouponRecord> selectMyCouponRecords(PageQueryUtil pageQueryUtil);
 
+    int getTotalMyCouponRecords(PageQueryUtil pageQueryUtil);
+
     List<UserCouponRecord> selectMyAvailableCoupons(Long userId);
 
     UserCouponRecord getUserCouponByOrderId(Long orderId);

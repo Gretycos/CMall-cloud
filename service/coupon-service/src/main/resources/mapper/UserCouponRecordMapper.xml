@@ -45,6 +45,21 @@
     </if>
   </select>
 
+  <select id="getTotalMyCouponRecords" resultType="int">
+    select count(*)
+    from tb_user_coupon_record
+    where is_deleted = 0
+    <if test="useStatus != null and useStatus == 0">
+      and use_status = 0
+    </if>
+    # 过期的/使用过的券 1个月之后就隐藏
+    <if test="useStatus != null and useStatus != 0">
+      and use_status != 0
+      and DATE_FORMAT(create_time,'%Y-%m-%d') <![CDATA[ >= ]]> DATE_SUB(CURRENT_DATE,INTERVAL 1 MONTH)
+    </if>
+    and user_id = #{userId}
+  </select>
+
   <select id="selectMyAvailableCoupons" resultMap="BaseResultMap">
     select
     <include refid="Base_Column_List"/>

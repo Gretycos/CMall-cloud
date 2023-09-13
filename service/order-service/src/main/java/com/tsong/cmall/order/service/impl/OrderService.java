@@ -253,8 +253,7 @@ public class OrderService implements IOrderService {
     @Override
     public PageResult getMyOrders(PageQueryUtil pageUtil) {
         List<Order> orderList = orderMapper.selectOrderList(pageUtil);
-        int total = orderList.size();
-
+        int total = orderMapper.getTotalOrders(pageUtil);
         List<OrderVO> orderVOList = new ArrayList<>();
         if (total > 0) {
             // 数据转换 将实体类转成vo

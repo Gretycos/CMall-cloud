@@ -48,11 +48,6 @@ public class CouponService implements ICouponService {
     private MessageHandler messageHandler;
 
     @Override
-    public Coupon getCouponById(Long id) {
-        return couponMapper.selectByPrimaryKey(id);
-    }
-
-    @Override
     public Coupon getByUserCouponId(Long id) {
         UserCouponRecord userCouponRecord = userCouponRecordMapper.selectByPrimaryKey(id);
         return couponMapper.selectByPrimaryKey(userCouponRecord.getCouponId());
@@ -84,7 +79,7 @@ public class CouponService implements ICouponService {
         // 查询当前上架的普通券
         List<Coupon> coupons = couponMapper.selectAvailableCoupon(pageUtil);
         List<CouponVO> couponVOList = BeanUtil.copyList(coupons, CouponVO.class);
-        int total = coupons.size();
+        int total = couponMapper.getTotalAvailableCoupon(pageUtil);
         if (total > 0){
             Map[] maps = getCategoryOrGoodsNamesMap(coupons);
             Map<Long, String> categoryNamesMap = maps[0];
@@ -168,7 +163,7 @@ public class CouponService implements ICouponService {
     @Override
     public PageResult selectMyCoupons(PageQueryUtil pageUtil) {
         List<UserCouponRecord> userCouponRecordList = userCouponRecordMapper.selectMyCouponRecords(pageUtil);
-        int total = userCouponRecordList.size();
+        int total = userCouponRecordMapper.getTotalMyCouponRecords(pageUtil);
         List<MyCouponVO> myCouponVOList = new ArrayList<>();
         if (total > 0) {
             // 从领券记录转化成用户领券视图
@@ -354,27 +349,12 @@ public class CouponService implements ICouponService {
     }
 
     @Override
-    public boolean deleteCouponUser(Long couponUserId) {
-        return userCouponRecordMapper.deleteByPrimaryKey(couponUserId) > 0;
-    }
-
-    @Override
     public void releaseCoupon(Long orderId) {
         UserCouponRecord userCouponRecord = userCouponRecordMapper.getUserCouponByOrderId(orderId);
         if (userCouponRecord != null){
             userCouponRecord.setUseStatus((byte) 0);
             userCouponRecord.setUpdateTime(new Date());
             userCouponRecordMapper.updateByPrimaryKey(userCouponRecord);
-        }
-    }
-
-    @Override
-    @Transactional
-    public void insertUserCouponRecordBatch(List<UserCouponRecord> userCouponRecordList) {
-        for (UserCouponRecord userCouponRecord : userCouponRecordList) {
-            if (userCouponRecordMapper.insertSelective(userCouponRecord) <= 0){
-                CMallException.fail(ServiceResultEnum.DB_ERROR.getResult());
-            }
         }
     }
 

@@ -98,8 +98,9 @@ public class GoodsService implements IGoodsService {
         try{
             SearchResponse<SearchPageGoodsVO> response = esClient.search(request, SearchPageGoodsVO.class);
             // 4. 解析结果
-            searchPageGoodsVOList = handleResponse(response);
-            int total = searchPageGoodsVOList.size();
+            SearchRes searchRes = handleResponse(response);
+            searchPageGoodsVOList = searchRes.searchPageGoodsVOS;
+            int total = searchRes.total;
             return new PageResult(searchPageGoodsVOList, total, pageUtil.getLimit(), pageUtil.getPage());
         }catch (IOException e){
             CMallException.fail("查询失败！");
@@ -245,8 +246,19 @@ public class GoodsService implements IGoodsService {
         );
     }
 
-    private List<SearchPageGoodsVO> handleResponse(SearchResponse<SearchPageGoodsVO> response) {
+    private class SearchRes{
+        private List<SearchPageGoodsVO> searchPageGoodsVOS;
+        private int total;
+
+        public SearchRes(List<SearchPageGoodsVO> searchPageGoodsVOS, int total) {
+            this.searchPageGoodsVOS = searchPageGoodsVOS;
+            this.total = total;
+        }
+    }
+
+    private SearchRes handleResponse(SearchResponse<SearchPageGoodsVO> response) {
         HitsMetadata<SearchPageGoodsVO> searchHits = response.hits();
+        int total = (int) searchHits.total().value();
         // 结果数组
         List<Hit<SearchPageGoodsVO>> hits = searchHits.hits();
         // 返回值
@@ -254,6 +266,6 @@ public class GoodsService implements IGoodsService {
         for (Hit<SearchPageGoodsVO> hit : hits) {
             searchPageGoodsVOS.add(hit.source());
         }
-        return searchPageGoodsVOS;
+        return new SearchRes(searchPageGoodsVOS, total);
     }
 }

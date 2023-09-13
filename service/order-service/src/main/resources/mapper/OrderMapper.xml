@@ -79,6 +79,37 @@
     </if>
   </select>
 
+  <select id="getTotalOrders" parameterType="Map" resultType="int">
+    select count(*)
+    from tb_order
+    <where>
+      <if test="orderNo!=null and orderNo!=''">
+        and order_no = #{orderNo}
+      </if>
+      <if test="userId!=null and userId!=''">
+        and user_id = #{userId}
+      </if>
+      <if test="seckillId!=null and seckillId!=''">
+        and seckill_id = #{seckillId}
+      </if>
+      <if test="payType!=null and payType!=''">
+        and pay_type = #{payType}
+      </if>
+      <if test="orderStatus!=null and orderStatus!='' or orderStatus == 0">
+        and order_status = #{orderStatus}
+      </if>
+      <if test="isDeleted!=null and isDeleted!='' or isDeleted == 0">
+        and is_deleted = #{isDeleted}
+      </if>
+      <if test="startTime != null and startTime.trim() != ''">
+        and create_time &gt; #{startTime}
+      </if>
+      <if test="endTime != null and endTime.trim() != ''">
+        and create_time &lt; #{endTime}
+      </if>
+    </where>
+  </select>
+
   <update id="closeOrder">
     update tb_order
     set order_status = #{orderStatus},update_time = now()

@@ -26,6 +26,8 @@ public interface OrderMapper {
 
     List<Order> selectOrderList(PageQueryUtil pageUtil);
 
+    int getTotalOrders(PageQueryUtil pageUtil);
+
     int closeOrder(@Param("orderIds")List<Long> orderIds, int orderStatus);
 
     String selectOrderNoByUserIdAndSeckillId(Long userId, Long seckillId);

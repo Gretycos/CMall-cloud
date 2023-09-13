@@ -19,8 +19,7 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 
-import static com.tsong.cmall.common.constants.Constants.MALL_USER_ID_TOKEN_KEY;
-import static com.tsong.cmall.common.constants.Constants.TOKEN_LENGTH;
+import static com.tsong.cmall.common.constants.Constants.*;
 
 /**
  * @Author Tsong
@@ -35,10 +34,32 @@ public class AuthFilter implements GlobalFilter, Ordered {
     static {
         antPathMatcher = new AntPathMatcher();
         whiteList.add("/api/homepage/**");
+        whiteList.add("/admin/user/login");
         whiteList.add("/api/user/login");
         whiteList.add("/api/user/register");
         whiteList.add("/upload/**");
+
     }
+
+    private enum Header {
+        USER("userId", MALL_USER_ID_TOKEN_KEY),
+        ADMIN("adminId", ADMIN_USER_ID_TOKEN_KEY);
+        private final String headerKey;
+        private final String redisKey;
+        Header(String headerKey, String redisKey){
+            this.headerKey = headerKey;
+            this.redisKey = redisKey;
+        }
+
+        public String getHeaderKey() {
+            return headerKey;
+        }
+
+        public String getRedisKey() {
+            return redisKey;
+        }
+    }
+
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
         // 获取请求头
@@ -50,35 +71,51 @@ public class AuthFilter implements GlobalFilter, Ordered {
         HttpHeaders headers = request.getHeaders();
         List<String> tokens = headers.get("token");
         List<String> userIds = headers.get("user-id");
-        if (tokens != null && !tokens.isEmpty() && userIds != null && !userIds.isEmpty()){
+        List<String> adminIds = headers.get("admin-id");
+        if (tokens != null && !tokens.isEmpty()){
             String token = tokens.get(0);
-            Long userId = Long.valueOf(userIds.get(0));
-            if (StringUtils.hasLength(token) && token.length() == TOKEN_LENGTH){
-                // 用id找token，再比对token的效率更高
-                String tokenStored  = redisCache.getCacheObject(MALL_USER_ID_TOKEN_KEY + userId);
-                // 登录过且token一致
-                if (StringUtils.hasLength(tokenStored) && tokenStored.equals(token)){
-                    URI uri = request.getURI();
-                    String originalQuery = uri.getQuery();
-                    StringBuilder query = new StringBuilder((originalQuery == null ? "" : originalQuery));
-                    // 有参数
-                    if (StringUtils.hasText(originalQuery)
-                            && originalQuery.charAt(originalQuery.length() - 1) != '&'){
-                        query.append('&');
-                    }
-                    // 新增参数
-                    query.append("userId=" + userId);
-                    // 修改uri
-                    URI newUri = UriComponentsBuilder.fromUri(uri)
-                            .replaceQuery(query.toString()).build().toUri();
-                    ServerHttpRequest newRequest = request.mutate().uri(newUri).build();
-                    // 修改请求并放行
-                    return chain.filter(exchange.mutate().request(newRequest).build());
-                }
+            ServerHttpRequest newRequest = null;
+            if (userIds != null && !userIds.isEmpty()) {
+                // 是用户
+                Long userId = Long.valueOf(userIds.get(0));
+                newRequest = getNewRequest(request, token, userId, Header.USER);
+            } else if (adminIds != null && !adminIds.isEmpty()){
+                // 是管理员
+                Long adminId = Long.valueOf(adminIds.get(0));
+                newRequest = getNewRequest(request, token, adminId, Header.ADMIN);
+            }
+            if (newRequest != null) {
+                return chain.filter(exchange.mutate().request(newRequest).build());
             }
         }
         exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
         return exchange.getResponse().setComplete();
+    }
+
+    private ServerHttpRequest getNewRequest(ServerHttpRequest request, String token, Long id,  Header header) {
+        if (StringUtils.hasLength(token) && token.length() == TOKEN_LENGTH){
+            // 用id找token，再比对token的效率更高
+            String tokenStored  = redisCache.getCacheObject(header.getRedisKey() + id);
+            // 登录过且token一致
+            if (StringUtils.hasLength(tokenStored) && tokenStored.equals(token)){
+                URI uri = request.getURI();
+                String originalQuery = uri.getQuery();
+                StringBuilder query = new StringBuilder((originalQuery == null ? "" : originalQuery));
+                // 有参数
+                if (StringUtils.hasText(originalQuery)
+                        && originalQuery.charAt(originalQuery.length() - 1) != '&'){
+                    query.append('&');
+                }
+                // 新增参数
+                query.append(header.getHeaderKey() + "=" + id);
+                // 修改uri
+                URI newUri = UriComponentsBuilder.fromUri(uri)
+                        .replaceQuery(query.toString()).build().toUri();
+                // 修改请求并放行
+                return request.mutate().uri(newUri).build();
+            }
+        }
+        return null;
     }
 
     private boolean isInWhiteList(String path) {

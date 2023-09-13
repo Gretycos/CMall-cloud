@@ -23,7 +23,7 @@ import java.util.Map;
  */
 @RestController
 @Tag(name = "Admin Order", description = "2-5.后台管理系统订单模块接口")
-@RequestMapping("/admin")
+@RequestMapping("/admin/order")
 public class AdminOrderAPI {
 //    private static final Logger logger = LoggerFactory.getLogger(AdminOrderAPI.class);
     @Autowired
@@ -32,7 +32,7 @@ public class AdminOrderAPI {
     /**
      * 列表
      */
-    @GetMapping(value = "/orders")
+    @GetMapping(value = "/")
     @Operation(summary = "订单列表", description = "可根据订单号和订单状态筛选")
     public Result list(@RequestParam(required = false) @Parameter(name = "页码") Integer pageNumber,
                        @RequestParam(required = false) @Parameter(name = "每页条数") Integer pageSize,
@@ -55,7 +55,7 @@ public class AdminOrderAPI {
         return ResultGenerator.genSuccessResult(adminOrderService.getOrdersPage(pageUtil));
     }
 
-    @GetMapping("/orders/{orderId}")
+    @GetMapping("/{orderId}")
     @Operation(summary = "订单详情接口", description = "传参为订单id")
     public Result orderDetailPage(@Parameter(name = "订单id") @PathVariable("orderId") Long orderId,
                                                  Long adminId) {
@@ -65,7 +65,7 @@ public class AdminOrderAPI {
     /**
      * 配货
      */
-    @PutMapping(value = "/orders/checkDone")
+    @PutMapping(value = "/checkDone")
     @Operation(summary = "修改订单状态为配货成功", description = "批量修改")
     public Result checkDone(@RequestBody BatchIdParam batchIdParam, Long adminId) {
         if (batchIdParam==null||batchIdParam.getIds().length < 1) {
@@ -82,7 +82,7 @@ public class AdminOrderAPI {
     /**
      * 出库
      */
-    @PutMapping(value = "/orders/checkOut")
+    @PutMapping(value = "/checkOut")
     @Operation(summary = "修改订单状态为已出库", description = "批量修改")
     public Result checkOut(@RequestBody BatchIdParam batchIdParam, Long adminId) {
         if (batchIdParam==null||batchIdParam.getIds().length < 1) {
@@ -99,7 +99,7 @@ public class AdminOrderAPI {
     /**
      * 关闭订单
      */
-    @PutMapping(value = "/orders/close")
+    @PutMapping(value = "/close")
     @Operation(summary = "修改订单状态为商家关闭", description = "批量修改")
     public Result closeOrder(@RequestBody @Valid BatchIdParam batchIdParam, Long adminId) {
         if (batchIdParam.getIds().length < 1) {

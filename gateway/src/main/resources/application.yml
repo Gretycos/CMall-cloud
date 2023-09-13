@@ -39,23 +39,23 @@ spring:
         - id: user-service # 路由标识，唯一
           uri: lb://user-service # 路由目标地址
           predicates: # 路由断言，判断请求符合的规则
-            - Path=/api/user/**
+            - Path=/api/user/**,/admin/user/**,/admin/mall/user/**
         - id: order-service
           uri: lb://order-service
           predicates:
-            - Path=/api/order/**
+            - Path=/api/order/**,/admin/order/**
         - id: coupon-service
           uri: lb://coupon-service
           predicates:
-            - Path=/api/coupon/**
+            - Path=/api/coupon/**,/admin/coupon/**
         - id: goods-service
           uri: lb://goods-service
           predicates:
-            - Path=/api/goods/**,/api/homepage/**,/upload/**
+            - Path=/api/goods/**,/api/homepage/**,/upload/**,/admin/goods/**,/admin/carousel/**,/admin/homepage/**,/admin/category/**,/admin/image/**,
         - id: seckill-service
           uri: lb://seckill-service
           predicates:
-            - Path=/api/seckill/**
+            - Path=/api/seckill/**,/admin/seckill/**
         - id: shopping-cart-service
           uri: lb://shopping-cart-service
           predicates:
@@ -67,6 +67,7 @@ spring:
             allowedOrigins:
               - "http://127.0.0.1:8001" # 好像没用
               - "http://localhost:8001"
+              - "http://localhost:8002"
             allowedMethods:
               - "GET"
               - "POST"

@@ -16,6 +16,8 @@ public interface CouponMapper {
 
     List<Coupon> selectAvailableCoupon(PageQueryUtil pageUtil);
 
+    int getTotalAvailableCoupon(PageQueryUtil pageUtil);
+
     int reduceCouponTotal(Long couponId);
 
     List<Coupon> selectByIds(List<Long> couponIds);

@@ -110,10 +110,10 @@ public class MallUserService implements IMallUserService {
                 userToken.setToken(token);
                 userToken.setUpdateTime(now);
                 userToken.setExpireTime(expireTime);
-                redisCache.setCacheObject(MALL_USER_ID_TOKEN_KEY + user.getUserId(), token,
-                        TOKEN_EXPIRED_TIME, TimeUnit.MILLISECONDS);
                 //更新
                 if (userTokenMapper.updateByPrimaryKeySelective(userToken) > 0) {
+                    redisCache.setCacheObject(MALL_USER_ID_TOKEN_KEY + user.getUserId(), token,
+                            TOKEN_EXPIRED_TIME, TimeUnit.MILLISECONDS);
                     //修改成功后返回
                     loginVO.setUserId(user.getUserId());
                     loginVO.setToken(token);

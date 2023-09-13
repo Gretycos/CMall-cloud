@@ -57,6 +57,16 @@
     </if>
   </select>
 
+  <select id="getTotalAvailableCoupon" parameterType="Map" resultType="int">
+    select count(*)
+    from tb_coupon
+    where is_deleted = 0
+    and coupon_type = 0
+    and coupon_status = 0
+    and DATE_FORMAT(coupon_start_time,'%Y-%m-%d') <![CDATA[ <= ]]> DATE_FORMAT(now(),'%Y-%m-%d')
+    and DATE_FORMAT(coupon_end_time,'%Y-%m-%d') <![CDATA[ >= ]]> DATE_FORMAT(now(),'%Y-%m-%d')
+  </select>
+
   <select id="selectByIds" resultMap="BaseResultMap">
     select
     <include refid="Base_Column_List"/>

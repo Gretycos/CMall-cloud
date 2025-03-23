@@ -68,6 +68,7 @@ public class SeckillAPI {
         if (!md5.equals(MD5Util.MD5Encode(seckillId.toString(), Constants.UTF_ENCODING))) {
             CMallException.fail("秒杀商品不存在");
         }
+
         return ResultGenerator.genSuccessResult(seckillService.executeSeckill(seckillId, userId, addressId));
     }
 

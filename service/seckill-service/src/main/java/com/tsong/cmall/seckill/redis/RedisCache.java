@@ -43,14 +43,18 @@ public class RedisCache {
         String lua = """
                 local c = redis.call('get',KEYS[1])
                 if c and tonumber(c) == 0 then
-                return -1;
+                    return -1;
                 end
+                
                 local record = redis.call('sismember',KEYS[2],ARGV[1])
                 if record == 1 then
-                return -2;
+                    return -2;
                 end
+                
                 c = redis.call('decr',KEYS[1])
+                
                 redis.call('sadd',KEYS[2],ARGV[1])
+                
                 return c;""";
 
         RedisScript<Long> redisScript = new DefaultRedisScript<>(lua, Long.class);

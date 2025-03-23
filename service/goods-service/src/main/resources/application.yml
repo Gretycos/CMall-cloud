@@ -6,7 +6,7 @@ server:
   tomcat:
     # idle-timeout 不可设置 默认是60s
     connection-timeout: 20000 # 请求握手超时时间
-    keep-alive-timeout: 60000 # keep-alive请求断开时间
+    keep-alive-timeout: 600000 # keep-alive请求断开时间
 
 spring:
   datasource:
@@ -49,3 +49,7 @@ mybatis:
 es:
   host: 127.0.0.1
   port: 9200
+
+canal:
+  server: 127.0.0.1:11111
+  destination: cmall

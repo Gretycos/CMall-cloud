@@ -4,8 +4,9 @@ server:
     enabled: true
     mime-types: application/json
   netty:
-    idle-timeout: 60000 # 空闲时间
-    connection-timeout: 30000 # 握手超时时间
+    idle-timeout: 20000 # 空闲时间
+    connection-timeout: 3000 # 握手超时时间
+    max-keep-alive-requests: 2000
 
 spring:
   main:
@@ -22,7 +23,15 @@ spring:
       password: 123456
       connect-timeout: 5000ms
       timeout: 5000ms
-      client-type: lettuce
+#      client-type: lettuce
+      lettuce:
+        pool:
+          enabled: true
+          max-active: 500
+          max-idle: 200
+          min-idle: 100
+          max-wait: 10s
+          time-between-eviction-runs: 10s
 
   cloud:
     nacos:
@@ -32,9 +41,15 @@ spring:
 
     gateway:
       httpclient:
+        compression: true
+        response-timeout: 10s # HTTP 响应超时时间
+        connect-timeout: 60000 # HTTP 连接超时时间，毫秒
         pool:
-          max-idle-time: 30000
-        response-timeout: 15000
+          type: fixed
+          max-idle-time: 5000
+          max-connections: 500 # 最大连接数限制，支持高并发
+          acquire-timeout: 5000 # 获取连接的最大等待时间，毫秒
+
       routes:
         - id: user-service # 路由标识，唯一
           uri: lb://user-service # 路由目标地址
@@ -56,6 +71,13 @@ spring:
           uri: lb://seckill-service
           predicates:
             - Path=/api/seckill/**,/admin/seckill/**
+          filters:
+#            - name: CustomRequestRateLimiter
+            - name: RequestRateLimiter
+              args:
+                key-resolver: '#{@keyResolver}'
+                redis-rate-limiter.replenishRate: 100 # 每秒生成领牌数
+                redis-rate-limiter.burstCapacity: 2000 # 桶容量
         - id: shopping-cart-service
           uri: lb://shopping-cart-service
           predicates:

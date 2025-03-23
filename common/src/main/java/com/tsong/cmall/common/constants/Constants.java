@@ -38,7 +38,7 @@ public class Constants {
 
     public final static int TOKEN_LENGTH = 32;//token字段长度
 
-    public final static long TOKEN_EXPIRED_TIME = 2 * 24 * 3600 * 1000; // 48小时过期
+    public final static long TOKEN_EXPIRED_TIME = 30L * 24 * 3600 * 1000; // 30天过期
 
     /**
      * 字符编码
@@ -99,4 +99,9 @@ public class Constants {
      * 秒杀成功的用户set缓存
      */
     public static final String SECKILL_SUCCESS_USER_ID = REDIS_KEY_PREFIX + "seckill_success_user_id:";
+
+    /**
+     * 用户下普通订单加锁
+     */
+    public static final String ORDER_CREATE_LOCK = REDIS_KEY_PREFIX + "order_create_lock:";
 }

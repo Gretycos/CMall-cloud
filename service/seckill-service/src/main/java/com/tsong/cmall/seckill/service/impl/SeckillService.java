@@ -81,6 +81,11 @@ public class SeckillService implements ISeckillService {
             return urlExposerVO;
         }
 
+        return createUrlExposerVO(seckillId);
+    }
+
+    private UrlExposerVO createUrlExposerVO(Long seckillId) {
+        UrlExposerVO urlExposerVO;
         SeckillGoodsVO seckillGoodsVO = redisCache.getCacheObject(Constants.SECKILL_GOODS_DETAIL + seckillId);
         if (seckillGoodsVO == null) {
             seckillGoodsVO = getSeckillGoodsDetail(seckillId);
@@ -90,22 +95,24 @@ public class SeckillService implements ISeckillService {
         Date endTime = seckillGoodsVO.getSeckillEnd();
         // 系统当前时间
         Date nowTime = new Date();
+        // 未开始
         if (nowTime.getTime() < startTime.getTime() || nowTime.getTime() > endTime.getTime()) {
             urlExposerVO = new UrlExposerVO(SeckillStatusEnum.NOT_START, seckillId, nowTime.getTime(), startTime.getTime(), endTime.getTime());
             if (nowTime.getTime() < startTime.getTime()){
-                redisCache.setNXCacheObject(Constants.SECKILL_SECRET_URL_KEY + seckillId, urlExposerVO,
+                redisCache.setCacheObject(Constants.SECKILL_SECRET_URL_KEY + seckillId, urlExposerVO,
                         startTime.getTime() - nowTime.getTime(), TimeUnit.MILLISECONDS);
             } else {
-                redisCache.setNXCacheObject(Constants.SECKILL_SECRET_URL_KEY + seckillId, urlExposerVO);
+                redisCache.setCacheObject(Constants.SECKILL_SECRET_URL_KEY + seckillId, urlExposerVO);
             }
             return urlExposerVO;
         }
         // 检查虚拟库存
         Integer stock = redisCache.getCacheObject(Constants.SECKILL_GOODS_STOCK_KEY + seckillId);
         if (stock == null || stock <= 0) {
+            // 库存不足
             urlExposerVO = new UrlExposerVO(SeckillStatusEnum.STARTED_SHORTAGE_STOCK, seckillId);
-            // 库存5分钟刷新一次
-            redisCache.setNXCacheObject(Constants.SECKILL_SECRET_URL_KEY + seckillId, urlExposerVO,
+            // 空库存状态
+            redisCache.setCacheObject(Constants.SECKILL_SECRET_URL_KEY + seckillId, urlExposerVO,
                     (long) SECKILL_STOCK_RECOVER_OVERTIME_MILLISECOND.getTime(), TimeUnit.MILLISECONDS);
             return urlExposerVO;
         }
@@ -113,35 +120,34 @@ public class SeckillService implements ISeckillService {
         String md5 = MD5Util.MD5Encode(seckillId.toString(), Constants.UTF_ENCODING);
         urlExposerVO = new UrlExposerVO(SeckillStatusEnum.START, md5, seckillId);
         // 秒杀事件加密
-        redisCache.setNXCacheObject(Constants.SECKILL_SECRET_URL_KEY + seckillId, urlExposerVO,
+        redisCache.setCacheObject(Constants.SECKILL_SECRET_URL_KEY + seckillId, urlExposerVO,
                 endTime.getTime() - nowTime.getTime(), TimeUnit.MILLISECONDS);
         return urlExposerVO;
     }
 
     @Override
-//    @Transactional(rollbackFor = Exception.class)
     public SeckillSuccessVO executeSeckill(Long seckillId, Long userId, Long addressId) {
-        // 判断能否在6毫秒内得到令牌，如果不能则立即返回false，不会阻塞程序
-        if (!rateLimiter.tryAcquire(6, TimeUnit.MILLISECONDS)) {
-            CMallException.fail("当前活动太火爆啦");
-        }
-        // 判断用户是否购买过秒杀商品
-        if (redisCache.containsCacheSet(Constants.SECKILL_SUCCESS_USER_ID + seckillId, userId)) {
-            CMallException.fail("您已经购买过秒杀商品，请勿重复购买");
-        }
+//        // 判断能否在6毫秒内得到令牌，如果不能则立即返回false，不会阻塞程序
+//        if (!rateLimiter.tryAcquire(6, TimeUnit.MILLISECONDS)) {
+//            CMallException.fail("当前活动太火爆啦");
+//        }
+//        // 判断用户是否购买过秒杀商品
+//        if (redisCache.containsCacheSet(Constants.SECKILL_SUCCESS_USER_ID + seckillId, userId)) {
+//            CMallException.fail("您已经购买过秒杀商品，请勿重复购买");
+//        }
 
         // 更新秒杀商品虚拟库存，登记userId
         // 返回剩余库存情况
         // 事务
         Long stock = redisCache.luaDecrement(Constants.SECKILL_GOODS_STOCK_KEY + seckillId,
-                Constants.SECKILL_SUCCESS_USER_ID + seckillId,
-                userId);
+                Constants.SECKILL_SUCCESS_USER_ID + seckillId, userId);
         if (stock < 0) {
             if (stock == -2) {
-                CMallException.fail("您已经购买过秒杀商品，请勿重复购买");
+                CMallException.fail("您已经参与过秒杀活动，请勿重复参与");
             }else{
-                // 移除加密url
-                redisCache.luaDeleteUrlVO(Constants.SECKILL_SECRET_URL_KEY + seckillId);
+                UrlExposerVO urlExposerVO = new UrlExposerVO(SeckillStatusEnum.STARTED_SHORTAGE_STOCK, seckillId);
+                // 修改加密urlVO为售罄
+                redisCache.setCacheObject(Constants.SECKILL_SECRET_URL_KEY + seckillId, urlExposerVO);
                 CMallException.fail("秒杀商品已售空");
             }
         }
@@ -173,27 +179,16 @@ public class SeckillService implements ISeckillService {
         seckillSuccessDTO.setUserId(userId);
         seckillSuccessDTO.setCreateTime(new Date());
 
-        // 减库存，消息队列
+        // 减真实库存消息
         messageHandler.sendMessage(CMALL_DIRECT, SECKILL_STOCK_DECREASE, seckillId);
-        // 记录秒杀成功
+        // 记录秒杀成功消息
         messageHandler.sendMessage(CMALL_DIRECT, SECKILL_SUCCESS, seckillSuccessDTO);
-//        if(seckillSuccessMapper.insertSuccessRecord(seckillSuccessDTO) <= 0){
-//            CMallException.fail("很遗憾！未抢购到秒杀商品");
-//        }
 
-//        // 获得该用户的秒杀成功
-//        SeckillSuccess seckillSuccess = seckillSuccessMapper
-//                .getSeckillSuccessByUserIdAndSeckillId(userId, seckillId);
         // 传回前端结果
         SeckillSuccessVO seckillSuccessVO = new SeckillSuccessVO();
         seckillSuccessVO.setMd5(
                 MD5Util.MD5Encode(
                         seckillId + userId + Constants.SECKILL_ORDER_SALT, Constants.UTF_ENCODING));
-//        Long seckillSuccessId = seckillSuccess.getSecId();
-//        seckillSuccessVO.setSeckillSuccessId(seckillSuccessId);
-//        seckillSuccessVO.setMd5(
-//                MD5Util.MD5Encode(
-//                        seckillSuccessId + Constants.SECKILL_ORDER_SALT, Constants.UTF_ENCODING));
 
         // 消息队列
         // 创建订单
@@ -203,6 +198,7 @@ public class SeckillService implements ISeckillService {
         msg.setAddressId(addressId);
         msg.setGoodsId(seckill.getGoodsId());
         msg.setSeckillPrice(seckill.getSeckillPrice());
+        // 创建订单消息
         messageHandler.sendMessage(CMALL_DIRECT, ORDER_SECKILL_CREATE, msg);
         // 返回秒杀成功的凭证，让用户轮询查订单
         return seckillSuccessVO;
@@ -308,6 +304,13 @@ public class SeckillService implements ISeckillService {
         redisCache.increment(Constants.SECKILL_GOODS_STOCK_KEY + seckillId);
         // 清除缓存中的用户秒杀记录
         redisCache.deleteCacheSetMember(Constants.SECKILL_SUCCESS_USER_ID + seckillId, userId);
+        // 恢复秒杀URL的库存状态
+        UrlExposerVO urlExposerVO = redisCache.getCacheObject(Constants.SECKILL_SECRET_URL_KEY + seckillId);
+
+        if (urlExposerVO == null || urlExposerVO.getSeckillStatusEnum() == SeckillStatusEnum.STARTED_SHORTAGE_STOCK){
+            createUrlExposerVO(seckillId);
+        }
+
     }
 
     @Override

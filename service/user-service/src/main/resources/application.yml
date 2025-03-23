@@ -6,7 +6,7 @@ server:
   tomcat:
     # idle-timeout 不可设置 默认是60s
     connection-timeout: 20000 # 请求握手超时时间
-    keep-alive-timeout: 60000 # keep-alive请求断开时间
+    keep-alive-timeout: 600000 # keep-alive请求断开时间
 
 spring:
   datasource:
@@ -39,7 +39,7 @@ spring:
           enabled: true # 开启httpclient5
         max-connections: 200
         max-connections-per-route: 50
-        time-to-live: 55 # 连接生存时间
+        time-to-live: 180 # 连接生存时间
 
   rabbitmq:
     host: 127.0.0.1
@@ -60,7 +60,7 @@ spring:
       database: 0
       password: 123456
       connect-timeout: 5000ms
-      timeout: 5000ms
+      timeout: 300s
       client-type: lettuce
 
 mybatis:

@@ -7,6 +7,7 @@ package com.tsong.cmall.common.constants;
 public class MQRoutingKeyCons {
     public static final String GOODS_STOCK_DECREASE = "goods.stock.decrease";
     public static final String GOODS_STOCK_RECOVER = "goods.stock.recover";
+    public static final String GOODS_CHANGED = "goods.changed";
 
     public static final String ORDER_UNPAID = "order.unpaid";
     public static final String ORDER_UNPAID_DL = "order.unpaid.dl";

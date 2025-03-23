@@ -22,4 +22,5 @@ public class MQQueueCons {
 
     public static final String GOODS_STOCK_RECOVER_QUEUE = "goods.stock.recover.queue";
     public static final String GOODS_STOCK_DECREASE_QUEUE = "goods.stock.decrease.queue";
+    public static final String GOODS_CHANGED_QUEUE = "goods.changed.queue";
 }

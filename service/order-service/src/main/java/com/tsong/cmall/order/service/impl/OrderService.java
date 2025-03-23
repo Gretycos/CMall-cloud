@@ -15,6 +15,7 @@ import com.tsong.cmall.order.mapper.OrderItemMapper;
 import com.tsong.cmall.order.mapper.OrderMapper;
 import com.tsong.cmall.dto.StockNumDTO;
 import com.tsong.cmall.order.mapper.dto.OrderPayStatusDTO;
+import com.tsong.cmall.order.redis.RedisCache;
 import com.tsong.cmall.order.service.IOrderService;
 import com.tsong.cmall.vo.order.OrderDetailVO;
 import com.tsong.cmall.vo.order.OrderItemVO;
@@ -25,6 +26,7 @@ import com.tsong.feign.clients.coupon.CouponClient;
 import com.tsong.feign.clients.goods.GoodsClient;
 import com.tsong.feign.clients.shopping_cart.ShoppingCartClient;
 import io.seata.spring.annotation.GlobalTransactional;
+import jakarta.annotation.Resource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -33,11 +35,11 @@ import org.springframework.util.CollectionUtils;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.*;
+import java.util.concurrent.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import static com.tsong.cmall.common.constants.Constants.SECKILL_ORDER_SALT;
-import static com.tsong.cmall.common.constants.Constants.UTF_ENCODING;
+import static com.tsong.cmall.common.constants.Constants.*;
 import static com.tsong.cmall.common.constants.MQExchangeCons.CMALL_DIRECT;
 import static com.tsong.cmall.common.constants.MQRoutingKeyCons.*;
 import static com.tsong.cmall.common.enums.ServiceResultEnum.RPC_ERROR;
@@ -65,12 +67,34 @@ public class OrderService implements IOrderService {
     private AddressClient addressClient;
     @Autowired
     private MessageHandler messageHandler;
+    @Autowired
+    private RedisCache redisCache;
+    @Resource(name = "orderThreadPool")
+    private ThreadPoolExecutor threadPoolExecutor;
 
     @Override
     @GlobalTransactional
-    public String saveOrder(Long userId, Long couponUserId, Long addressId, Long[] cartItemIds) {
+    public String saveOrder(Long userId, Long couponUserId, Long addressId, Long[] cartItemIds){
+
+        // 获得下单的token，确保幂等性
+        String itemIdsStr = Arrays.stream(cartItemIds).map(Object::toString).collect(Collectors.joining(","));
+        String orderToken = MD5Util.MD5Encode(userId+":"+addressId+":"+itemIdsStr, UTF_ENCODING);
+
+        // 加锁下单
+        String lockKey = ORDER_CREATE_LOCK + orderToken;
+        String lockValue = redisCache.tryLock(lockKey, 10);
+        if (lockValue == null) {
+            CMallException.fail("请勿重复提交下单");
+        }
+
+        // 最终要同步的子线程任务列表
+        List<CompletableFuture<?>> futureList = new ArrayList<>();
+
         // 购物车项目id表
         List<Long> itemIdList = Arrays.asList(cartItemIds);
+        if (CollectionUtils.isEmpty(itemIdList)) {
+            CMallException.fail(ServiceResultEnum.ORDER_GENERATE_ERROR.getResult());
+        }
 
         // 查询参与结算的购物车项目
         Result<List<ShoppingCartItemVO>> cartItemsResult = shoppingCartClient.getCartItemsByIds(itemIdList);
@@ -82,6 +106,9 @@ public class OrderService implements IOrderService {
         // 商品id表
         List<Long> goodsIds = shoppingCartItemList.stream()
                 .map(ShoppingCartItemVO::getGoodsId).collect(Collectors.toList());
+        if (CollectionUtils.isEmpty(goodsIds)) {
+            CMallException.fail(ServiceResultEnum.ORDER_GENERATE_ERROR.getResult());
+        }
 
         // 商品表
         Result<List<GoodsInfo>> goodsListResult = goodsClient.getGoodsListByIds(goodsIds);
@@ -89,19 +116,23 @@ public class OrderService implements IOrderService {
             CMallException.fail(RPC_ERROR.getResult() + goodsListResult.getMessage());
         }
         List<GoodsInfo> goodsInfoList = goodsListResult.getData();
+        if (CollectionUtils.isEmpty(goodsInfoList)) {
+            CMallException.fail(ServiceResultEnum.ORDER_GENERATE_ERROR.getResult());
+        }
 
         // 检查是否包含已下架商品
         List<GoodsInfo> goodsListNotSelling = goodsInfoList.stream()
-                .filter(goodsTemp -> goodsTemp.getGoodsSaleStatus() != Constants.SALE_STATUS_UP)
-                .collect(Collectors.toList());
+                .filter(goodsTemp -> goodsTemp.getGoodsSaleStatus() != SALE_STATUS_UP)
+                .toList();
         if (!CollectionUtils.isEmpty(goodsListNotSelling)) {
             // goodsListNotSelling 对象非空则表示有下架商品
             CMallException.fail(goodsListNotSelling.get(0).getGoodsName() + "已下架，无法生成订单");
         }
+
+        // 判断商品库存
         // id 映射成GoodsInfo，相同id的合并
         Map<Long, GoodsInfo> goodsInfoMap = goodsInfoList.stream()
                 .collect(Collectors.toMap(GoodsInfo::getGoodsId, Function.identity(), (entity1, entity2) -> entity1));
-        // 判断商品库存
         for (ShoppingCartItemVO shoppingCartItemVO : shoppingCartItemList) {
             // 查出的商品中不存在购物车中的这条关联商品数据，直接返回错误提醒
             if (!goodsInfoMap.containsKey(shoppingCartItemVO.getGoodsId())) {
@@ -112,94 +143,144 @@ public class OrderService implements IOrderService {
                 CMallException.fail(ServiceResultEnum.SHOPPING_ITEM_COUNT_ERROR.getResult());
             }
         }
-        if (CollectionUtils.isEmpty(itemIdList) || CollectionUtils.isEmpty(goodsIds) || CollectionUtils.isEmpty(goodsInfoList)) {
-            CMallException.fail(ServiceResultEnum.ORDER_GENERATE_ERROR.getResult());
-        }
+
 
         // 购物车清空结算的项目
-        Result<Boolean> shoppingCartDeleteResult = shoppingCartClient.deleteCartItemsByIds(itemIdList);
-        if (shoppingCartDeleteResult.getResultCode() != 200) {
-            CMallException.fail(RPC_ERROR.getResult() + shoppingCartDeleteResult.getMessage());
+        futureList.add(CompletableFuture.runAsync(() -> {
+                Result<Boolean> shoppingCartDeleteResult = shoppingCartClient.deleteCartItemsByIds(itemIdList);
+                if (shoppingCartDeleteResult.getResultCode() != 200) {
+                    CMallException.fail(RPC_ERROR.getResult() + shoppingCartDeleteResult.getMessage());
+                }
+            }, threadPoolExecutor)
+        );
+
+        // 查找领券记录
+        CompletableFuture<Coupon> couponFuture;
+        if (couponUserId != null) {
+            couponFuture = CompletableFuture.supplyAsync(() -> {
+                Result<Coupon> couponResult = couponClient.getCouponByCouponUserId(couponUserId);
+                if (couponResult.getResultCode() != 200) {
+                    CMallException.fail(RPC_ERROR.getResult() + couponResult.getMessage());
+                }
+                return couponResult.getData();
+            }, threadPoolExecutor);
+        } else {
+            couponFuture = null;
+        }
+
+        // 生成订单号
+        String orderNo = NumberUtil.genOrderNo();
+
+        // 生成订单
+        CompletableFuture<Long> genOrderFuture = CompletableFuture.supplyAsync(()->{
+            Order order = Order.builder()
+                    .orderNo(orderNo)
+                    .userId(userId)
+                    .build();
+
+            // 总价
+            BigDecimal priceTotal = new BigDecimal(0);
+            for (ShoppingCartItemVO shoppingCartItemVO : shoppingCartItemList) {
+                priceTotal = priceTotal
+                        .add(shoppingCartItemVO.getSellingPrice().multiply(new BigDecimal(shoppingCartItemVO.getGoodsCount())))
+                        .setScale(2, RoundingMode.HALF_UP) ;
+            }
+            // 如果使用了优惠券
+            if (couponFuture != null) {
+                try {
+                    priceTotal = priceTotal.subtract(new BigDecimal(couponFuture.get().getDiscount()));
+                } catch (Exception e) {
+                    CMallException.fail(e.getMessage());
+                }
+            }
+
+            if (priceTotal.compareTo(new BigDecimal(1)) < 0) {
+                CMallException.fail(ServiceResultEnum.ORDER_PRICE_ERROR.getResult());
+            }
+            order.setTotalPrice(priceTotal);
+            String extraInfo = "cmall-支付宝沙箱支付";
+            order.setExtraInfo(extraInfo);
+            // 生成订单并保存订单纪录
+            if (orderMapper.insertSelective(order) <= 0) {
+                CMallException.fail(ServiceResultEnum.DB_ERROR.getResult());
+            }
+            return order.getOrderId();
+        }, threadPoolExecutor);
+
+        // 获得订单Id，阻塞
+        Long orderId = null;
+        try {
+            orderId = genOrderFuture.get();
+        } catch (Exception e) {
+            CMallException.fail(e.getMessage());
+        }
+
+        Long finalOrderId = orderId;
+        // 更新优惠券使用状态
+        if (couponUserId != null) {
+            futureList.add(CompletableFuture.runAsync(() -> {
+                UserCouponRecord userCouponRecord = UserCouponRecord.builder()
+                        .couponUserId(couponUserId)
+                        .orderId(finalOrderId)
+                        .useStatus((byte) 1)
+                        .usedTime(new Date())
+                        .updateTime(new Date())
+                        .build();
+                Result<Integer> updateUserCouponResult = couponClient.updateUserCouponRecord(userCouponRecord);
+                if (updateUserCouponResult.getResultCode() != 200){
+                    CMallException.fail(RPC_ERROR.getResult() + updateUserCouponResult.getMessage());
+                }
+                if (updateUserCouponResult.getData() <= 0){
+                    CMallException.fail(ServiceResultEnum.DB_ERROR.getResult());
+                }
+            }, threadPoolExecutor));
+        }
+
+        // 生成订单地址快照
+        futureList.add(CompletableFuture.runAsync(() -> {
+            // 查询用户地址
+            UserAddress address = getUserAddress_RPC(addressId);
+            genOrderAddressSnapshot(finalOrderId, address);
+        }, threadPoolExecutor));
+
+        // 生成所有的订单项快照，并保存至数据库
+        futureList.add(CompletableFuture.runAsync(() -> {
+            List<OrderItem> orderItemList = new ArrayList<>();
+            for (ShoppingCartItemVO shoppingCartItemVO : shoppingCartItemList) {
+                OrderItem orderItem = new OrderItem();
+                // 使用BeanUtil工具类将ShoppingCartItemVO中的属性复制到OrderItem对象中
+                BeanUtil.copyProperties(shoppingCartItemVO, orderItem);
+                // OrderMapper文件insert()方法中使用了useGeneratedKeys因此orderId可以获取到
+                orderItem.setOrderId(finalOrderId);
+                orderItemList.add(orderItem);
+            }
+            // 保存订单项快照至数据库
+            if (orderItemMapper.insertBatch(orderItemList) <= 0) {
+                CMallException.fail(ServiceResultEnum.DB_ERROR.getResult());
+            }
+        }, threadPoolExecutor));
+
+        // 等待任务执行完
+        for (CompletableFuture<?> future : futureList) {
+            try {
+                future.join();
+            } catch (Exception e) {
+                CMallException.fail(e.getMessage());
+            }
         }
 
         // 更新库存
         // 消息队列
         List<StockNumDTO> stockNumDTOS = BeanUtil.copyList(shoppingCartItemList, StockNumDTO.class);
         messageHandler.sendMessage(CMALL_DIRECT, GOODS_STOCK_DECREASE, stockNumDTOS);
-        // 生成订单号
-        String orderNo = NumberUtil.genOrderNo();
-        // 保存订单
-        Order order = Order.builder()
-                .orderNo(orderNo)
-                .userId(userId)
-                .build();
-        // 总价
-        BigDecimal priceTotal = new BigDecimal(0);
-        for (ShoppingCartItemVO shoppingCartItemVO : shoppingCartItemList) {
-            priceTotal = priceTotal
-                    .add(shoppingCartItemVO.getSellingPrice().multiply(new BigDecimal(shoppingCartItemVO.getGoodsCount())))
-                    .setScale(2, RoundingMode.HALF_UP) ;
-        }
-        // 如果使用了优惠券
-        if (couponUserId != null) {
-            // 查找领券记录
-            Result<Coupon> couponResult = couponClient.getCouponByCouponUserId(couponUserId);
-            if (couponResult.getResultCode() != 200){
-                CMallException.fail(RPC_ERROR.getResult() + couponResult.getMessage());
-            }
-            Coupon coupon = couponResult.getData();
-            priceTotal = priceTotal.subtract(new BigDecimal(coupon.getDiscount()));
-
-            // 更新优惠券使用状态
-            UserCouponRecord userCouponRecord = UserCouponRecord.builder()
-                    .couponUserId(couponUserId)
-                    .orderId(order.getOrderId())
-                    .useStatus((byte) 1)
-                    .usedTime(new Date())
-                    .updateTime(new Date())
-                    .build();
-            Result<Integer> updateResult = couponClient.updateUserCouponRecord(userCouponRecord);
-            if (updateResult.getResultCode() != 200){
-                CMallException.fail(RPC_ERROR.getResult() + updateResult.getMessage());
-            }
-            if (updateResult.getData() <= 0){
-                CMallException.fail(ServiceResultEnum.DB_ERROR.getResult());
-            }
-        }
-        if (priceTotal.compareTo(new BigDecimal(1)) < 0) {
-            CMallException.fail(ServiceResultEnum.ORDER_PRICE_ERROR.getResult());
-        }
-        order.setTotalPrice(priceTotal);
-        String extraInfo = "cmall-支付宝沙箱支付";
-        order.setExtraInfo(extraInfo);
-        // 生成订单并保存订单纪录
-        if (orderMapper.insertSelective(order) <= 0) {
-            CMallException.fail(ServiceResultEnum.DB_ERROR.getResult());
-        }
-
-        // 查询用户地址
-        UserAddress address = getUserAddress_RPC(addressId);
-        // 生成订单地址快照
-        genOrderAddressSnapshot(order, address);
-
-        // 生成所有的订单项快照，并保存至数据库
-        List<OrderItem> orderItemList = new ArrayList<>();
-        for (ShoppingCartItemVO shoppingCartItemVO : shoppingCartItemList) {
-            OrderItem orderItem = new OrderItem();
-            // 使用BeanUtil工具类将ShoppingCartItemVO中的属性复制到OrderItem对象中
-            BeanUtil.copyProperties(shoppingCartItemVO, orderItem);
-            // OrderMapper文件insert()方法中使用了useGeneratedKeys因此orderId可以获取到
-            orderItem.setOrderId(order.getOrderId());
-            orderItemList.add(orderItem);
-        }
-        // 保存订单项快照至数据库
-        if (orderItemMapper.insertBatch(orderItemList) <= 0) {
-            CMallException.fail(ServiceResultEnum.DB_ERROR.getResult());
-        }
 
         // 订单超时未支付，超过300秒自动取消订单
         // 延迟队列
-        messageHandler.sendMessage(CMALL_DIRECT, ORDER_UNPAID, order.getOrderId());
+        messageHandler.sendMessage(CMALL_DIRECT, ORDER_UNPAID, orderId);
+
+        // 解锁下单
+        redisCache.unlock(lockKey, lockValue);
+
         // 所有操作成功后，将订单号返回，以供Controller方法跳转到订单详情
         return orderNo;
     }
@@ -208,7 +289,7 @@ public class OrderService implements IOrderService {
     public String getSeckillOrderNo(Long userId, Long seckillId, String seckillSecretKey) {
         if (!seckillSecretKey.equals(
                 MD5Util.MD5Encode(seckillId + userId + SECKILL_ORDER_SALT, UTF_ENCODING))){
-            CMallException.fail("查询失败");
+            CMallException.fail("未查询到订单信息");
         }
         String orderNo = orderMapper.selectOrderNoByUserIdAndSeckillId(userId, seckillId);
         return orderNo == null ? "" : orderNo;
@@ -421,48 +502,97 @@ public class OrderService implements IOrderService {
     public void handleSeckillSaveOrder(Long userId, Long seckillId, Long goodsId,
                                        Long addressId, BigDecimal seckillPrice) {
 
+        // 获得下单的token，确保幂等性
+        String orderToken = MD5Util.MD5Encode(userId+":"+addressId+":"+seckillId, UTF_ENCODING);
+
+        // 加锁下单
+        String lockKey = ORDER_CREATE_LOCK + orderToken;
+        String lockValue = redisCache.tryLock(lockKey, 10);
+        if (lockValue == null) {
+            CMallException.fail("请勿重复提交下单");
+        }
+
+        // 最终要同步的子线程任务列表
+        List<CompletableFuture<?>> futureList = new ArrayList<>();
+
         // 查找商品
-        Result<GoodsInfo> goodsResult = goodsClient.getGoodsById(goodsId);
-        if (goodsResult.getResultCode() != 200) {
-            CMallException.fail(RPC_ERROR.getResult() + goodsResult.getMessage());
-        }
-        GoodsInfo goodsInfo = goodsResult.getData();
+        CompletableFuture<GoodsInfo> goodsInfoFuture = CompletableFuture.supplyAsync(() -> {
+            Result<GoodsInfo> goodsResult = goodsClient.getGoodsById(goodsId);
+            if (goodsResult.getResultCode() != 200) {
+                CMallException.fail(RPC_ERROR.getResult() + goodsResult.getMessage());
+            }
+            return goodsResult.getData();
+        }, threadPoolExecutor);
 
-        // 生成订单号
-        String orderNo = NumberUtil.genOrderNo();
         // 保存订单
-        Order order = Order.builder()
-                .orderNo(orderNo)
-                .seckillId(seckillId)
-                .totalPrice(seckillPrice)
-                .userId(userId)
-                .orderStatus((byte) OrderStatusEnum.ORDER_PRE_PAY.getOrderStatus())
-                .build();
-        String extraInfo = "";
-        order.setExtraInfo(extraInfo);
-        if (orderMapper.insertSelective(order) <= 0) {
-            CMallException.fail("生成秒杀订单异常");
+        CompletableFuture<Long> genOrderFuture = CompletableFuture.supplyAsync(() -> {
+            // 生成订单号
+            String orderNo = NumberUtil.genOrderNo();
+            Order order = Order.builder()
+                    .orderNo(orderNo)
+                    .seckillId(seckillId)
+                    .totalPrice(seckillPrice)
+                    .userId(userId)
+                    .orderStatus((byte) OrderStatusEnum.ORDER_PRE_PAY.getOrderStatus())
+                    .build();
+            String extraInfo = "";
+            order.setExtraInfo(extraInfo);
+            if (orderMapper.insertSelective(order) <= 0) {
+                CMallException.fail("生成秒杀订单异常");
+            }
+            return order.getOrderId();
+        }, threadPoolExecutor);
+
+        Long orderId = null;
+        try {
+            orderId = genOrderFuture.get();
+        } catch (Exception e) {
+            CMallException.fail(e.getMessage());
         }
 
-        // 查找用户地址
-        UserAddress address = getUserAddress_RPC(addressId);
         // 生成订单地址快照，并保存至数据库
-        genOrderAddressSnapshot(order, address);
+        Long finalOrderId = orderId;
+        futureList.add(CompletableFuture.runAsync(() -> {
+            // 查找用户地址
+            UserAddress address = getUserAddress_RPC(addressId);
+            genOrderAddressSnapshot(finalOrderId, address);
+        }, threadPoolExecutor));
 
         // 保存订单商品项
-        OrderItem orderItem = OrderItem.builder()
-                .orderId(order.getOrderId())
-                .goodsId(goodsInfo.getGoodsId())
-                .goodsName(goodsInfo.getGoodsName())
-                .goodsCoverImg(goodsInfo.getGoodsCoverImg())
-                .goodsCount(1)
-                .sellingPrice(seckillPrice)
-                .build();
-        if (orderItemMapper.insertSelective(orderItem) <= 0) {
-            CMallException.fail("生成订单项异常");
+        futureList.add(CompletableFuture.runAsync(() -> {
+            GoodsInfo goodsInfo = null;
+            try {
+                goodsInfo = goodsInfoFuture.get();
+            } catch (Exception e) {
+                CMallException.fail(e.getMessage());
+            }
+            OrderItem orderItem = OrderItem.builder()
+                    .orderId(finalOrderId)
+                    .goodsId(goodsInfo.getGoodsId())
+                    .goodsName(goodsInfo.getGoodsName())
+                    .goodsCoverImg(goodsInfo.getGoodsCoverImg())
+                    .goodsCount(1)
+                    .sellingPrice(seckillPrice)
+                    .build();
+            if (orderItemMapper.insertSelective(orderItem) <= 0) {
+                CMallException.fail("生成订单项异常");
+            }
+        }, threadPoolExecutor));
+
+        for (CompletableFuture<?> future : futureList) {
+            try {
+                future.join();
+            }catch (Exception e) {
+                CMallException.fail(e.getMessage());
+            }
+
         }
+
         // 订单超时未支付
-        messageHandler.sendMessage(CMALL_DIRECT, ORDER_SECKILL_UNPAID, order.getOrderId());
+        messageHandler.sendMessage(CMALL_DIRECT, ORDER_SECKILL_UNPAID, orderId);
+
+        // 解锁下单
+        redisCache.unlock(lockKey, lockValue);
     }
 
     /**
@@ -481,15 +611,15 @@ public class OrderService implements IOrderService {
 
     /**
      * @Description 生成订单地址快照，并保存至数据库
-     * @Param [order, address]
+     * @Param [orderId, address]
      * @Return void
      */
-    private void genOrderAddressSnapshot(Order order, UserAddress address) {
+    private void genOrderAddressSnapshot(Long orderId, UserAddress address) {
         OrderAddress orderAddress = new OrderAddress();
         // 用户地址->订单地址
         BeanUtil.copyProperties(address, orderAddress);
         // OrderMapper文件insert()方法中使用了useGeneratedKeys因此orderId可以获取到
-        orderAddress.setOrderId(order.getOrderId());
+        orderAddress.setOrderId(orderId);
         // 保存订单地址快照至数据库
         if (orderAddressMapper.insertSelective(orderAddress) <= 0){
             CMallException.fail(ServiceResultEnum.DB_ERROR.getResult());

@@ -16,12 +16,12 @@ public class TokenUtil {
         try {
             MessageDigest md = MessageDigest.getInstance("MD5");
             md.update(src.getBytes());
-            String result = new BigInteger(1, md.digest()).toString(16);
+            StringBuilder result = new StringBuilder(new BigInteger(1, md.digest()).toString(16));
             Random random = new Random();
             while (result.length() < 32) {
-                result = result + random.nextInt(10);
+                result.append(random.nextInt(10));
             }
-            return result;
+            return result.toString();
         } catch (Exception e) {
             return null;
         }

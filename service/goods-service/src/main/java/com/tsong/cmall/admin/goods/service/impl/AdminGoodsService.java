@@ -73,6 +73,7 @@ public class AdminGoodsService implements IAdminGoodsService {
         }
         // 插入
         if (adminGoodsMapper.insertSelective(goodsInfo) > 0) {
+            // 插入ES
             insertDocIntoES(goodsInfo);
             return ServiceResultEnum.SUCCESS.getResult();
         }
@@ -158,6 +159,24 @@ public class AdminGoodsService implements IAdminGoodsService {
         GoodsCarouselVO goodsCarouselVO = new GoodsCarouselVO();
         BeanUtil.copyProperties(goods, goodsCarouselVO);
         return goodsCarouselVO;
+    }
+
+    @Override
+    public void updateGoodsES(GoodsInfo goodsInfo) {
+        GoodsEditParam goodsEditParam = new GoodsEditParam();
+        BeanUtil.copyProperties(goodsInfo, goodsEditParam);
+        updateDoc(goodsEditParam);
+    }
+
+    @Override
+    public void deleteGoodsES(GoodsInfo goodsInfo) {
+        List<GoodsInfo> goodsList = List.of(goodsInfo);
+        batchDelDoc(goodsList);
+    }
+
+    @Override
+    public void insertGoodsES(GoodsInfo goodsInfo) {
+        insertDocIntoES(goodsInfo);
     }
 
     private void insertDocIntoES(GoodsInfo goodsInfo) {

@@ -5,11 +5,14 @@ server:
     mime-types: application/json
   tomcat:
     threads:
-      max: 800
-    accept-count: 200
+      max: 1000
+      min-spare: 50
+    accept-count: 1000 # 队列容量
     # idle-timeout 不可设置 默认是60s
-    connection-timeout: 20000 # 请求握手超时时间
-    keep-alive-timeout: 60000 # keep-alive请求断开时间
+    connection-timeout: 10000 # 等待客户端发起请求的时间
+    keep-alive-timeout: 5000 # http空闲时间到后释放
+    max-keep-alive-requests: 1000 # 单连接的最大请求数
+    max-connections: 500
 
 spring:
   datasource:
@@ -19,7 +22,7 @@ spring:
     password: 123456
     hikari:
 #      minimum-idle: 100 # 启动时连接数 不设置时与maximum-pool-size相同
-      maximum-pool-size: 500
+      maximum-pool-size: 200
       connection-timeout: 30000 # 创建连接等待时间
       max-lifetime: 600000 # 活跃最长时间，比数据库允许最长时间要短
       idle-timeout: 90000 # 空闲最长时间，超过这个时间并且比min值大，会被踢出线程池
@@ -42,7 +45,7 @@ spring:
           enabled: true # 开启httpclient5
         max-connections: 200
         max-connections-per-route: 50
-        time-to-live: 55 # 连接生存时间
+        time-to-live: 180 # 连接生存时间
 
   rabbitmq:
     host: 127.0.0.1
@@ -74,8 +77,17 @@ spring:
       database: 0
       password: 123456
       connect-timeout: 5000ms
-      timeout: 5000ms
-      client-type: lettuce
+      timeout: 5s
+#      client-type: lettuce
+      lettuce:
+        pool:
+          enabled: true
+          max-active: 500
+          max-idle: 200
+          min-idle: 100
+          max-wait: 10s
+          time-between-eviction-runs: 10s
+
 
 mybatis:
   # mapper映射文件位置

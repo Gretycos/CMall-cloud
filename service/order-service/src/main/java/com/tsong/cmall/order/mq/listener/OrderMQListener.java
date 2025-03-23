@@ -14,6 +14,7 @@ import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.util.concurrent.ExecutionException;
 
 import static com.tsong.cmall.common.constants.MQQueueCons.*;
 

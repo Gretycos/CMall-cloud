@@ -5,7 +5,7 @@ server:
     mime-types: application/json
   tomcat:
     connection-timeout: 20000 # 请求握手超时时间
-    keep-alive-timeout: 60000 # keep-alive请求断开时间
+    keep-alive-timeout: 600000 # keep-alive请求断开时间
 
 spring:
   datasource:
@@ -38,7 +38,7 @@ spring:
           enabled: true # 开启httpclient5
         max-connections: 200
         max-connections-per-route: 50
-        time-to-live: 55 # 连接生存时间
+        time-to-live: 180 # 连接生存时间
 
   rabbitmq:
     host: 127.0.0.1

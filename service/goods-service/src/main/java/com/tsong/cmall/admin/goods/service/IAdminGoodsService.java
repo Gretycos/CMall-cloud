@@ -7,6 +7,7 @@ import com.tsong.cmall.admin.goods.web.vo.GoodsCarouselVO;
 import com.tsong.cmall.admin.goods.web.vo.GoodsNameVO;
 import com.tsong.cmall.common.util.PageQueryUtil;
 import com.tsong.cmall.common.util.PageResult;
+import com.tsong.cmall.entity.GoodsInfo;
 
 import java.util.List;
 
@@ -30,4 +31,10 @@ public interface IAdminGoodsService {
     List<GoodsNameVO> getAllGoodsNameByAdminId(Long adminId);
 
     GoodsCarouselVO getGoodsCarouselById(Long goodsId, Long adminId);
+
+    void updateGoodsES(GoodsInfo goodsInfo);
+
+    void deleteGoodsES(GoodsInfo goodsInfo);
+
+    void insertGoodsES(GoodsInfo goodsInfo);
 }

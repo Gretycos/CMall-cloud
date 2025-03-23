@@ -1,5 +1,6 @@
 package com.tsong.cmall.goods;
 
+import io.xzxj.canal.spring.annotation.EnableCanalListener;
 import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -17,6 +18,9 @@ import org.springframework.context.annotation.ComponentScan;
         "com.tsong.cmall.admin.goods.*",
         "com.tsong.cmall.goods.*",
         "com.tsong.cmall.common.exception"
+})
+@EnableCanalListener(basePackages = {
+        "com.tsong.cmall.admin.goods.*"
 })
 @SpringBootApplication
 public class GoodsApplication {

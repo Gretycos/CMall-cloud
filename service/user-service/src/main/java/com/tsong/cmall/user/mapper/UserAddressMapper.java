@@ -1,6 +1,7 @@
 package com.tsong.cmall.user.mapper;
 
 import com.tsong.cmall.entity.UserAddress;
+import org.apache.ibatis.annotations.Select;
 
 import java.util.List;
 

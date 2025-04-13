@@ -68,7 +68,7 @@ public class CustomRequestRateLimiterGatewayFilterFactory extends RequestRateLim
                         } else {
                             ServerWebExchangeUtils.setResponseStatus(exchange, config.getStatusCode());
                             exchange.getResponse().getHeaders().setContentType(MediaType.APPLICATION_JSON);
-                            String responseBody = "{ \"resultCode\": 429, \"message\": \"请求被限流，请稍后重试\" }";
+                            String responseBody = "{ \"resultCode\": 429, \"message\": \"请求过于频繁，请稍后重试\" }";
                             DataBuffer buffer = exchange.getResponse().bufferFactory().wrap(responseBody.getBytes(StandardCharsets.UTF_8));
                             return exchange.getResponse().writeWith(Mono.just(buffer));
                         }

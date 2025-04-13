@@ -1,5 +1,6 @@
 package com.tsong.cmall.admin.seckill.service.impl;
 
+import com.google.common.hash.BloomFilter;
 import com.tsong.cmall.admin.seckill.mapper.AdminSeckillMapper;
 import com.tsong.cmall.admin.seckill.service.IAdminSeckillService;
 
@@ -18,6 +19,7 @@ import com.tsong.cmall.entity.Seckill;
 import com.tsong.cmall.seckill.redis.RedisCache;
 import com.tsong.cmall.seckill.web.vo.SeckillVO;
 import com.tsong.feign.clients.goods.GoodsClient;
+import jakarta.annotation.Resource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
@@ -42,6 +44,9 @@ public class AdminSeckillService implements IAdminSeckillService {
 
     @Autowired
     private RedisCache redisCache;
+
+    @Resource
+    BloomFilter<String> bloomFilter;
 
     @Override
     public PageResult getSeckillPage(PageQueryUtil pageUtil) {
@@ -116,6 +121,9 @@ public class AdminSeckillService implements IAdminSeckillService {
         }
         boolean res = adminSeckillMapper.insertSelective(seckill) > 0;
         if (res) {
+            // 加入布隆过滤器
+            bloomFilter.put(seckill.getSeckillId().toString());
+
             // 虚拟库存预热
             // mapper文件中使用了useGeneratedKeys="true" keyProperty="seckillId"
             // 所以插入成功后会返回seckillId到对象上

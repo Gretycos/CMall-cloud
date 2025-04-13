@@ -11,6 +11,7 @@ import com.tsong.cmall.entity.GoodsInfo;
 import com.tsong.cmall.entity.Seckill;
 import com.tsong.cmall.entity.SeckillSuccess;
 import com.tsong.cmall.msg.CreateSeckillOrderMsg;
+import com.tsong.cmall.seckill.bloomfilter.BFilter;
 import com.tsong.cmall.seckill.enums.SeckillStatusEnum;
 import com.tsong.cmall.seckill.mapper.SeckillMapper;
 import com.tsong.cmall.seckill.mapper.SeckillSuccessMapper;
@@ -21,6 +22,7 @@ import com.tsong.cmall.seckill.web.vo.SeckillGoodsVO;
 import com.tsong.cmall.seckill.web.vo.SeckillSuccessVO;
 import com.tsong.cmall.seckill.web.vo.UrlExposerVO;
 import com.tsong.feign.clients.goods.GoodsClient;
+import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -46,25 +48,24 @@ import static com.tsong.cmall.seckill.enums.SeckillConfigEnum.SECKILL_STOCK_RECO
 public class SeckillService implements ISeckillService {
     // 使用令牌桶RateLimiter 限流
     // 初始化每秒能够通过的请求数
-    private static final RateLimiter rateLimiter = RateLimiter.create(500);
+//    private static final RateLimiter rateLimiter = RateLimiter.create(500);
 
-    private static final Logger logger = LoggerFactory.getLogger(SeckillService.class);
+//    private static final Logger logger = LoggerFactory.getLogger(SeckillService.class);
 
-    @Autowired
+    @Resource
     private SeckillMapper seckillMapper;
 
-    @Autowired
+    @Resource
     private SeckillSuccessMapper seckillSuccessMapper;
 
-    @Autowired
+    @Resource
     private GoodsClient goodsClient;
 
-    @Autowired
+    @Resource
     private RedisCache redisCache;
 
-    @Autowired
+    @Resource
     private MessageHandler messageHandler;
-
 
     @Override
     public boolean hasStock(Long seckillId) {
@@ -73,6 +74,7 @@ public class SeckillService implements ISeckillService {
     }
 
     @Override
+    @BFilter
     public UrlExposerVO exposeUrl(Long seckillId) {
         // 先找redis
         // 最好预热的时候redis中有，否则所有线程涌入后方
@@ -126,6 +128,7 @@ public class SeckillService implements ISeckillService {
     }
 
     @Override
+    @BFilter
     public SeckillSuccessVO executeSeckill(Long seckillId, Long userId, Long addressId) {
 //        // 判断能否在6毫秒内得到令牌，如果不能则立即返回false，不会阻塞程序
 //        if (!rateLimiter.tryAcquire(6, TimeUnit.MILLISECONDS)) {
@@ -205,12 +208,14 @@ public class SeckillService implements ISeckillService {
     }
 
     @Override
+    @BFilter
     public SeckillGoodsVO getSeckillGoodsDetail(Long seckillId) {
         SeckillGoodsVO seckillGoodsVO = redisCache.getCacheObject(Constants.SECKILL_GOODS_DETAIL + seckillId);
         if (seckillGoodsVO != null) {
             return seckillGoodsVO;
         }
 
+        // 如果不用布隆过滤器，这里的seckillId是非法的话会让数据库崩溃
         Seckill seckill = seckillMapper.selectByPrimaryKey(seckillId);
         if (!seckill.getSeckillStatus()){
             return null;

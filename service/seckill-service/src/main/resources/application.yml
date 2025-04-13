@@ -13,7 +13,6 @@ server:
     keep-alive-timeout: 5000 # http空闲时间到后释放
     max-keep-alive-requests: 1000 # 单连接的最大请求数
     max-connections: 500
-
 spring:
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
@@ -87,10 +86,12 @@ spring:
           min-idle: 100
           max-wait: 10s
           time-between-eviction-runs: 10s
-
-
 mybatis:
   # mapper映射文件位置
   mapper-locations: classpath:mapper/*Mapper.xml
   configuration:
     map-underscore-to-camel-case: true
+
+bloom-filter:
+  expected-insertions: 1000000
+  fpp: 0.01

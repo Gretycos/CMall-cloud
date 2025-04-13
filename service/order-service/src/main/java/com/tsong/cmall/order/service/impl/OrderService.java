@@ -1,9 +1,9 @@
 package com.tsong.cmall.order.service.impl;
 
-import com.tsong.cmall.common.constants.Constants;
 import com.tsong.cmall.common.enums.ServiceResultEnum;
 import com.tsong.cmall.common.exception.CMallException;
 import com.tsong.cmall.common.mq.MessageHandler;
+import com.tsong.cmall.common.mq.MyMsg;
 import com.tsong.cmall.common.util.*;
 import com.tsong.cmall.entity.*;
 import com.tsong.cmall.msg.SeckillStockMsg;
@@ -27,7 +27,6 @@ import com.tsong.feign.clients.goods.GoodsClient;
 import com.tsong.feign.clients.shopping_cart.ShoppingCartClient;
 import io.seata.spring.annotation.GlobalTransactional;
 import jakarta.annotation.Resource;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
@@ -51,23 +50,23 @@ import static java.util.stream.Collectors.groupingBy;
  */
 @Service
 public class OrderService implements IOrderService {
-    @Autowired
+    @Resource
     private OrderMapper orderMapper;
-    @Autowired
+    @Resource
     private OrderItemMapper orderItemMapper;
-    @Autowired
+    @Resource
     private OrderAddressMapper orderAddressMapper;
-    @Autowired
+    @Resource
     private ShoppingCartClient shoppingCartClient;
-    @Autowired
+    @Resource
     private GoodsClient goodsClient;
-    @Autowired
+    @Resource
     private CouponClient couponClient;
-    @Autowired
+    @Resource
     private AddressClient addressClient;
-    @Autowired
+    @Resource
     private MessageHandler messageHandler;
-    @Autowired
+    @Resource
     private RedisCache redisCache;
     @Resource(name = "orderThreadPool")
     private ThreadPoolExecutor threadPoolExecutor;
@@ -269,14 +268,20 @@ public class OrderService implements IOrderService {
             }
         }
 
+        List<MyMsg> myMsgList = new ArrayList<>();
+
         // 更新库存
         // 消息队列
         List<StockNumDTO> stockNumDTOS = BeanUtil.copyList(shoppingCartItemList, StockNumDTO.class);
-        messageHandler.sendMessage(CMALL_DIRECT, GOODS_STOCK_DECREASE, stockNumDTOS);
+//        messageHandler.sendMessage(CMALL_DIRECT, GOODS_STOCK_DECREASE, stockNumDTOS);
+        myMsgList.add(new MyMsg(CMALL_DIRECT, GOODS_STOCK_DECREASE, stockNumDTOS));
 
         // 订单超时未支付，超过300秒自动取消订单
         // 延迟队列
-        messageHandler.sendMessage(CMALL_DIRECT, ORDER_UNPAID, orderId);
+//        messageHandler.sendMessage(CMALL_DIRECT, ORDER_UNPAID, orderId);
+        myMsgList.add(new MyMsg(CMALL_DIRECT, ORDER_UNPAID, orderId));
+
+        messageHandler.sendMessageBatch(myMsgList);
 
         // 解锁下单
         redisCache.unlock(lockKey, lockValue);
